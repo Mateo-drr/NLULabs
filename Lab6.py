@@ -39,14 +39,23 @@ tmpy = []
 dpz = []
 dpy = []
 
+lock = False
+
 for i,item in enumerate(sents):
     jsents.append(" ".join(item))
     stz.append(stanza(jsents[i]))
     spy.append(spcy(jsents[i]))
     
-    stz[i] = stz[i]._.pandas#["DEPREL"].replace({"root": "ROOT"})
+    stz[i] = stz[i]._.pandas
     spy[i] = spy[i]._.pandas
     
+    if not lock:
+        print('Spacy Dep Tags:  ', ' '.join(spy[i]['DEPREL'].tolist()))
+        print('Stanza Dep Tags:', ' '+ ' '.join(stz[i]['DEPREL'].tolist()))     
+        print("The tags are not the same!")
+        lock = True         
+    
+    #fix error in code given in the tutorial
     stz[i]['DEPREL'] = stz[i]['DEPREL'].replace({"root": "ROOT"})
     
     tmpz.append( stz[i][["FORM", 'XPOS', 'HEAD', 'DEPREL']].to_string(header=False, index=False))
@@ -61,7 +70,7 @@ for i,item in enumerate(sents):
     
 de = DependencyEvaluator(dpy, psents)
 las, uas = de.eval()
-print('Spacy: ')
+print('\nSpacy: ')
 print("LAS:", las)
 print("UAS:", uas)
 de = DependencyEvaluator(dpz, psents)
