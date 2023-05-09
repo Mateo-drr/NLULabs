@@ -13,6 +13,8 @@ import spacy_conll
 from nltk.corpus import dependency_treebank
 import spacy_stanza
 from nltk.parse import DependencyEvaluator
+import nltk
+nltk.download('dependency_treebank')
 
 stanza = spacy_stanza.load_pipeline("en", verbose=False, tokenize_pretokenized=True)
 config = {"ext_names": {"conll_pd": "pandas"},
@@ -42,13 +44,15 @@ for i,item in enumerate(sents):
     stz.append(stanza(jsents[i]))
     spy.append(spcy(jsents[i]))
     
-    stz[i] = stz[i]._.pandas
+    stz[i] = stz[i]._.pandas#["DEPREL"].replace({"root": "ROOT"})
     spy[i] = spy[i]._.pandas
+    
+    stz[i]['DEPREL'] = stz[i]['DEPREL'].replace({"root": "ROOT"})
     
     tmpz.append( stz[i][["FORM", 'XPOS', 'HEAD', 'DEPREL']].to_string(header=False, index=False))
     tmpy.append(spy[i][["FORM", 'XPOS', 'HEAD', 'DEPREL']].to_string(header=False, index=False))
     
-    #dpz.append(DependencyGraph(tmpz[i]))
+    dpz.append(DependencyGraph(tmpz[i]))
     dpy.append(DependencyGraph(tmpy[i]))
     
     if i== 99:
@@ -57,30 +61,15 @@ for i,item in enumerate(sents):
     
 de = DependencyEvaluator(dpy, psents)
 las, uas = de.eval()
-
+print('Spacy: ')
+print("LAS:", las)
+print("UAS:", uas)
+de = DependencyEvaluator(dpz, psents)
+las, uas = de.eval()
+print("\nStanza: ")
 print("LAS:", las)
 print("UAS:", uas)
 
-#print(tmpz)
-#dp = DependencyGraph(tmpz)
-#print('Tree:')
-#dp.tree().pretty_print(unicodelines=True, nodedist=4)
-
-#print the parsed sentence
-# print(tmpy)
-# dp = DependencyGraph(tmpy)
-# print('Tree:')
-# dp.tree().pretty_print(unicodelines=True, nodedist=4)
-
-# #print the goal
-# dp2 = psents[99]
-# dp2.tree().pretty_print(unicodelines=True, nodedist=4)
-
-# de = DependencyEvaluator([dp] , [psents[99]])
-# las, uas = de.eval()
-
-# print("LAS:", las)
-# print("UAS:", uas)
 
 
 
