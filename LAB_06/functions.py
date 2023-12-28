@@ -6,7 +6,6 @@ import spacy
 from nltk.corpus import dependency_treebank
 import spacy_stanza
 import nltk
-import spacy_conll
 
 def ini():
     nltk.download('dependency_treebank')

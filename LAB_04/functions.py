@@ -9,6 +9,8 @@ from nltk.metrics import accuracy
 import spacy.cli
 from itertools import chain
 
+#test split indes
+idx=3131
 
 def res(nk, sp):
     for i in range(0,len(nk)):
@@ -53,15 +55,23 @@ def testTag(sents, usents, spacy_test_sents):
             if True:#for bkf in range(0,2):
 
                 #NLTK
-                ngram_tagger = NgramTagger(n, train=sents[:3131], cutoff=cutoff)
+                ngram_tagger = NgramTagger(n, train=sents[:idx], cutoff=cutoff)
                 tsents = ngram_tagger.tag_sents(usents) #tag the words
-                ngram_accuracy = accuracy(list(chain.from_iterable(sents[3131:])), list(chain.from_iterable(tsents)))
+                ngram_accuracy = accuracy(list(chain.from_iterable(sents[idx:])), list(chain.from_iterable(tsents)))
                 nk[n-1].append(ngram_accuracy)
                     
                 #SPACY
-                spacy_tagger = NgramTagger(n,train=spacy_test_sents[:3131], cutoff=cutoff)
+                spacy_tagger = NgramTagger(n,train=spacy_test_sents[:idx], cutoff=cutoff)
                 spacy_tsents = spacy_tagger.tag_sents(usents)
-                ngram_accuracy = accuracy(list(chain.from_iterable(spacy_test_sents[3131:])),list(chain.from_iterable(spacy_tsents)))
+                ngram_accuracy = accuracy(list(chain.from_iterable(spacy_test_sents[idx:])),list(chain.from_iterable(spacy_tsents)))
                 sp[n-1].append(ngram_accuracy)
                 
     return nk, sp
+
+def spacyAcc(spacy_sents):
+    
+    #test_tags = get_mapping_tags_to_nltk(nlp, start_index=train_index)
+    tags = treebank.tagged_sents(tagset='universal')[idx:]
+    tags = list(chain.from_iterable(tags))
+    accuracy_spacy = accuracy(list(chain.from_iterable(spacy_sents[idx:])), tags)
+    return accuracy_spacy

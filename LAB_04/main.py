@@ -6,6 +6,7 @@ from functions import *
 
 if __name__ == "__main__":
     
+    '''
     #Mapping NLTK and SPACY
     mapping_spacy_to_NLTK = {
         'ADJ': 'JJ',
@@ -27,9 +28,9 @@ if __name__ == "__main__":
         'X': 'FW',
         'SPACE': 'SP'
     }
-    
-    #This other mapping gives the same result
     '''
+    #This other mapping gives the same result
+    
     mapping_spacy_to_NLTK = {
         "ADJ": "ADJ",
         "ADP": "ADP",
@@ -49,15 +50,17 @@ if __name__ == "__main__":
         "VERB": "VERB",
         "X": "X"
     }
-    '''
+    
     
     #Load spacy and nltk data, including the sentences 
     sents, usents, nlp = loadData()
     #Get the trained data tagged for spacy
     spacy_train_sents = spacyTag(usents, nlp, mapping_spacy_to_NLTK)
     #test with the untagged sentences
-    nk, sp = testTag(sents, usents[3131:], spacy_train_sents)
+    nk, sp = testTag(sents, usents[idx:], spacy_train_sents)
     #print accurcy results
     res(nk, sp)
     
+    #Running spacy without nltk
+    print('NLTK best ACC:', max(max(nk)), 'vs SPACY ACC:',spacyAcc(spacy_train_sents))
     

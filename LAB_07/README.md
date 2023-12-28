@@ -1,3 +1,76 @@
-**This file is not mandatory**
-But if you want, here your can add your comments or anything that you want to share with us
-regarding the exercise.
+Acc: 0.304
+interest.n.01  : p=0.269; r=0.096; f=0.269; s=73
+interest.n.03  : p=0.000; r=0.000; f=0.000; s=2
+pastime.n.01   : p=0.039; r=0.308; f=0.039; s=13
+sake.n.01      : p=0.091; r=0.457; f=0.091; s=35
+interest.n.05  : p=0.344; r=0.110; f=0.344; s=100
+interest.n.04  : p=0.869; r=0.422; f=0.869; s=251
+Acc: 0.068
+interest.n.01  : p=0.000; r=0.000; f=0.000; s=73
+interest.n.03  : p=0.000; r=0.000; f=0.000; s=2
+pastime.n.01   : p=0.037; r=0.385; f=0.037; s=13
+sake.n.01      : p=0.049; r=0.429; f=0.049; s=35
+interest.n.05  : p=0.375; r=0.090; f=0.375; s=100
+interest.n.04  : p=1.000; r=0.012; f=1.000; s=251
+Acc: 0.268
+interest.n.01  : p=0.231; r=0.083; f=0.231; s=72
+interest.n.03  : p=0.000; r=0.000; f=0.000; s=2
+pastime.n.01   : p=0.018; r=0.143; f=0.018; s=14
+sake.n.01      : p=0.091; r=0.457; f=0.091; s=35
+interest.n.05  : p=0.143; r=0.030; f=0.143; s=100
+interest.n.04  : p=0.862; r=0.398; f=0.862; s=251
+Acc: 0.076
+interest.n.01  : p=0.333; r=0.014; f=0.333; s=72
+interest.n.03  : p=0.000; r=0.000; f=0.000; s=2
+pastime.n.01   : p=0.015; r=0.143; f=0.015; s=14
+sake.n.01      : p=0.079; r=0.686; f=0.079; s=35
+interest.n.05  : p=0.258; r=0.080; f=0.258; s=100
+interest.n.04  : p=1.000; r=0.004; f=1.000; s=251
+Acc: 0.278
+interest.n.01  : p=0.250; r=0.097; f=0.250; s=72
+interest.n.03  : p=0.000; r=0.000; f=0.000; s=3
+pastime.n.01   : p=0.016; r=0.154; f=0.016; s=13
+sake.n.01      : p=0.099; r=0.444; f=0.099; s=36
+interest.n.05  : p=0.333; r=0.070; f=0.333; s=100
+interest.n.04  : p=0.877; r=0.400; f=0.877; s=250
+Acc: 0.068
+interest.n.01  : p=0.000; r=0.000; f=0.000; s=72
+interest.n.03  : p=0.000; r=0.000; f=0.000; s=3
+pastime.n.01   : p=0.052; r=0.462; f=0.052; s=13
+sake.n.01      : p=0.056; r=0.500; f=0.056; s=36
+interest.n.05  : p=0.286; r=0.080; f=0.286; s=100
+interest.n.04  : p=0.000; r=0.000; f=0.000; s=250
+Acc: 0.311
+interest.n.01  : p=0.265; r=0.125; f=0.265; s=72
+interest.n.03  : p=0.000; r=0.000; f=0.000; s=2
+pastime.n.01   : p=0.042; r=0.385; f=0.042; s=13
+sake.n.01      : p=0.122; r=0.500; f=0.122; s=36
+interest.n.05  : p=0.300; r=0.090; f=0.300; s=100
+interest.n.04  : p=0.883; r=0.424; f=0.883; s=250
+Acc: 0.072
+interest.n.01  : p=0.333; r=0.014; f=0.333; s=72
+interest.n.03  : p=0.000; r=0.000; f=0.000; s=2
+pastime.n.01   : p=0.032; r=0.308; f=0.032; s=13
+sake.n.01      : p=0.075; r=0.667; f=0.075; s=36
+interest.n.05  : p=0.174; r=0.040; f=0.174; s=100
+interest.n.04  : p=1.000; r=0.004; f=1.000; s=250
+Acc: 0.294
+interest.n.01  : p=0.138; r=0.056; f=0.138; s=72
+interest.n.03  : p=0.000; r=0.000; f=0.000; s=2
+pastime.n.01   : p=0.026; r=0.231; f=0.026; s=13
+sake.n.01      : p=0.136; r=0.639; f=0.136; s=36
+interest.n.05  : p=0.286; r=0.060; f=0.286; s=100
+interest.n.04  : p=0.880; r=0.412; f=0.880; s=250
+Acc: 0.055
+interest.n.01  : p=0.000; r=0.000; f=0.000; s=72
+interest.n.03  : p=0.000; r=0.000; f=0.000; s=2
+pastime.n.01   : p=0.023; r=0.231; f=0.023; s=13
+sake.n.01      : p=0.054; r=0.472; f=0.054; s=36
+interest.n.05  : p=0.190; r=0.040; f=0.190; s=100
+interest.n.04  : p=1.000; r=0.008; f=1.000; s=250
+
+Average Accuracy OG LESK: 0.2909724266509665
+Average Accuracy Sim LESK: 0.06756407168535516
+0.8167224199605713
+0.8479799466552483
+0.9058259961998555

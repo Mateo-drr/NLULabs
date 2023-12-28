@@ -28,7 +28,7 @@ if __name__ == "__main__":
     ###########################################################################
     #BOW
     scores = cross_validate(classifier, vectors, labels, cv=stratified_split, scoring=['f1_micro'])
-    #print(sum(scores['test_f1_micro'])/len(scores['test_f1_micro']))
+
     sc.append(scores)
     
     ###########################################################################
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     dvectors = getJointData(instances, 3) #n window
     
     scores = cross_validate(classifier, dvectors, labels, cv=stratified_split, scoring=['f1_micro'])
-    #print(sum(scores['test_f1_micro'])/len(scores['test_f1_micro']))
+
     sc.append(scores)
     
     ###########################################################################
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     uvectors = np.concatenate((vectors.toarray(), dvectors), axis=1)
     
     scores = cross_validate(classifier, uvectors, labels, cv=stratified_split, scoring=['f1_micro'])
-    #print(sum(scores['test_f1_micro'])/len(scores['test_f1_micro']))
+
     sc.append(scores)
     
     ###########################################################################
