@@ -1,22 +1,32 @@
+Lab Exercise: Text Classification
+Using Newsgroup dataset from scikit-learn train and evaluate Linear SVM (LinearSVC) model
+Experiment with different vectorization methods and parameters, experiment_id in parentheses (e.g. CounVector, CutOff, etc.):
+binary of Count Vectorization (CountVect)
+TF-IDF Transformation (TF-IDF)
+Using TF-IDF
+min and max cut-offs (CutOff)
+wihtout stop-words (WithoutStopWords)
+without lowercasing (NoLowercase)
+To print the results: print(experiment_id, the most appropriate score metric to report))
+
 OUTPUT:
-
-
+..........................................
 Countvectorize results: 
 Evaluation Scores:
-	 accuracy 0.860860913787892
-	 balanced_accuracy 0.8580959842279607
-	 f1_micro 0.8608610019113989
-	 f1_macro 0.8588212079157074
-	 f1_weighted 0.8606767904941874
+	 accuracy 0.8609937159127261
+	 balanced_accuracy 0.8581063882508497
+	 f1_micro 0.8611264299140531
+	 f1_macro 0.8588256777227701
+	 f1_weighted 0.8606729341948807
 Classification Report: 
                            precision    recall  f1-score   support
 
              alt.atheism       0.75      0.72      0.73       319
-           comp.graphics       0.67      0.72      0.70       389
+           comp.graphics       0.67      0.72      0.69       389
  comp.os.ms-windows.misc       0.70      0.65      0.68       394
-comp.sys.ibm.pc.hardware       0.63      0.67      0.65       392
+comp.sys.ibm.pc.hardware       0.63      0.66      0.65       392
    comp.sys.mac.hardware       0.73      0.79      0.76       385
-          comp.windows.x       0.81      0.68      0.74       395
+          comp.windows.x       0.81      0.69      0.74       395
             misc.forsale       0.80      0.88      0.84       390
                rec.autos       0.84      0.83      0.84       396
          rec.motorcycles       0.89      0.93      0.91       398
@@ -41,9 +51,6 @@ comp.sys.ibm.pc.hardware       0.63      0.67      0.65       392
  
 TF-IDF results: 
 
-Double checking if data range isnt affected: 
- 	 0.998313815146947 0.0
-	 0.99831384 0.0
 Evaluation Scores:
 	 accuracy 0.9125081624398227
 	 balanced_accuracy 0.9091955574481696
@@ -84,9 +91,6 @@ comp.sys.ibm.pc.hardware       0.71      0.76      0.74       392
 TF-IDF cutoff results: 
 
 Cutoff used: tokens that appear in less than 10 documents, and tokens that appear in more than 80.0 % of documents
-Double checking if data range isnt affected: 
- 	 0.9983206984549668 0.0
-	 0.9983207 0.0
 Evaluation Scores:
 	 accuracy 0.9010902640268389
 	 balanced_accuracy 0.8979776166325829
@@ -126,9 +130,6 @@ comp.sys.ibm.pc.hardware       0.69      0.72      0.70       392
  
 TF-IDF stopwords results: 
 
-Double checking if data range isnt affected: 
- 	 0.9983141430099645 0.0
-	 0.99831414 0.0
 Evaluation Scores:
 	 accuracy 0.9134375129431401
 	 balanced_accuracy 0.910519199747206
@@ -166,11 +167,8 @@ comp.sys.ibm.pc.hardware       0.71      0.76      0.73       392
 
 ..........................................
  
-TF-IDF no lowercasing results: 
+TF-IDF stpw no lowercasing results: 
 
-Double checking if data range isnt affected: 
- 	 0.9972106146740944 0.0
-	 0.9972106 0.0
 Evaluation Scores:
 	 accuracy 0.9105170999258881
 	 balanced_accuracy 0.907506302399159
@@ -208,28 +206,46 @@ comp.sys.ibm.pc.hardware       0.72      0.76      0.74       392
 
 Results comparison:
 
+Countvectorize:
+						  precision    recall  f1-score 
 
+                accuracy                           0.79      7532
+               macro avg       0.78      0.78      0.78      7532
+            weighted avg       0.79      0.79      0.78      7532 
 
-                accuracy                           0.80      7532
-               macro avg       0.80      0.79      0.79      7532
-            weighted avg       0.80      0.80      0.80      7532
-
+TF-IDF:
+						  precision    recall  f1-score 
 
                 accuracy                           0.85      7532
                macro avg       0.85      0.85      0.85      7532
-            weighted avg       0.85      0.85      0.85      7532
+            weighted avg       0.85      0.85      0.85      7532 
 
+TF-IDF cutoff:
+						  precision    recall  f1-score 
 
                 accuracy                           0.84      7532
                macro avg       0.83      0.83      0.83      7532
-            weighted avg       0.84      0.84      0.84      7532
+            weighted avg       0.84      0.84      0.84      7532 
 
+TF-IDF stopwords:
+						  precision    recall  f1-score 
 
                 accuracy                           0.85      7532
                macro avg       0.85      0.85      0.85      7532
-            weighted avg       0.85      0.85      0.85      7532
+            weighted avg       0.85      0.85      0.85      7532 
 
+TF-IDF stpw no lowercasing:
+						  precision    recall  f1-score 
 
                 accuracy                           0.85      7532
                macro avg       0.85      0.84      0.84      7532
-            weighted avg       0.85      0.85      0.85      7532
+            weighted avg       0.85      0.85      0.85      7532 
+
+-------------------------------------------------------------------
+Comparison simplified
+
+Countvectorize: acc: 0.79
+TF-IDF: acc: 0.85
+TF-IDF cutoff: acc: 0.84
+TF-IDF stopwords: acc: 0.85
+TF-IDF stpw no lowercasing: acc: 0.85

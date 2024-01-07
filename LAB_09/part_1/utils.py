@@ -6,7 +6,19 @@ device='cuda'
 #CUSTOM DATASET
 ###########################################################################
 class PennTreeBank (data.Dataset):
-    # Mandatory methods are __init__, __len__ and __getitem__
+    """
+    Custom PyTorch dataset for the Penn TreeBank corpus.
+
+    Parameters:
+    - corpus (list): List of sentences from the Penn TreeBank corpus.
+    - lang: Language object containing word-to-index and index-to-word mappings.
+
+    Methods:
+    - __init__(corpus, lang): Initializes the dataset.
+    - __len__(): Returns the number of samples in the dataset.
+    - __getitem__(idx): Returns the source and target tensors for the specified index.
+    - mapping_seq(data, lang): Maps sequences to numerical representations.
+    """
     def __init__(self, corpus, lang):
         self.source = []
         self.target = []
@@ -47,6 +59,16 @@ class PennTreeBank (data.Dataset):
     
 ###############################################################################
 def read_file(path, eos_token="<eos>"):
+    """
+    Read a file and append the end-of-sentence token to each line.
+
+    Parameters:
+    - path (str): Path to the file.
+    - eos_token (str): End-of-sentence token.
+
+    Returns:
+    - list: List of lines from the file with the end-of-sentence token appended.
+    """
     output = []
     with open(path, "r") as f:
         for line in f.readlines():
@@ -54,6 +76,16 @@ def read_file(path, eos_token="<eos>"):
     return output
 
 def get_vocab(corpus, special_tokens=[]):
+    """
+    Build a vocabulary from the given corpus.
+
+    Parameters:
+    - corpus (list): List of sentences.
+    - special_tokens (list): List of special tokens.
+
+    Returns:
+    - dict: Vocabulary with word-to-index mappings.
+    """
     output = {}
     i = 0 
     for st in special_tokens:
@@ -67,6 +99,17 @@ def get_vocab(corpus, special_tokens=[]):
     return output
 
 class Lang():
+    """
+    Language class with word-to-index and index-to-word mappings.
+
+    Parameters:
+    - corpus (list): List of sentences.
+    - special_tokens (list): List of special tokens.
+
+    Methods:
+    - __init__(corpus, special_tokens): Initializes the language object.
+    - get_vocab(corpus, special_tokens): Builds the vocabulary.
+    """
     def __init__(self, corpus, special_tokens=[]):
         self.word2id = self.get_vocab(corpus, special_tokens)
         self.id2word = {v:k for k, v in self.word2id.items()}
@@ -86,6 +129,16 @@ class Lang():
         
 ###############################################################################
 def collate_fn(data, pad_token):
+    """
+    Collate function for creating batches.
+
+    Parameters:
+    - data (list): List of samples.
+    - pad_token (int): Padding token index.
+
+    Returns:
+    - dict: Dictionary containing 'source', 'target', and 'number_tokens'.
+    """
     def merge(sequences):
         '''
         merge from batch * sent_len to batch * max_len 

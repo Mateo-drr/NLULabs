@@ -8,6 +8,15 @@ import spacy_stanza
 import nltk
 
 def ini():
+    """
+    Initialize resources and download necessary data.
+
+    Returns:
+    stanza (stanza.Pipeline): Stanza pipeline for tokenization and dependency parsing.
+    spcy (spacy.Language): Spacy language model for tokenization and dependency parsing.
+    sents (list): List of sentences from the dependency_treebank dataset.
+    psents (list): List of parsed sentences from the dependency_treebank dataset.
+    """
     nltk.download('dependency_treebank')
     
     stanza = spacy_stanza.load_pipeline("en", verbose=False, tokenize_pretokenized=True)
@@ -27,7 +36,25 @@ def ini():
     return stanza, spcy, sents, psents
 
 def depGraphs(stanza, spcy, sents, jsents,stz,spy, dpz,dpy):
-    lock = False
+    """
+    Generate DependencyGraph objects for sentences using Stanza and Spacy.
+
+    Parameters:
+    stanza (stanza.Pipeline): Stanza pipeline for tokenization and dependency parsing.
+    spcy (spacy.Language): Spacy language model for tokenization and dependency parsing.
+    sents (list): List of sentences from the dependency_treebank dataset.
+    jsents (list): List of joined sentences.
+    stz (list): List to store Stanza outputs.
+    spy (list): List to store Spacy outputs.
+    dpz (list): List to store DependencyGraph objects for Stanza.
+    dpy (list): List to store DependencyGraph objects for Spacy.
+
+    Returns:
+    dpy (list): Updated list of DependencyGraph objects for Spacy.
+    dpz (list): Updated list of DependencyGraph objects for Stanza.
+    """
+    
+    lock = False #used for printing
     tmpy = []    
     tmpz = []
     for i,item in enumerate(sents):

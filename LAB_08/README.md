@@ -1,3 +1,14 @@
+Lab Exercise
+Same test set for all the experiments, you can use K-fold validation
+
+Extend collocational features with
+POS-tags
+Ngrams within window
+Concatenate BOW and new collocational feature vectors & evaluate
+Evaluate Lesk Original and Graph-based (Lesk Similarity or Pedersen) metrics on the same test split and compare
+
+OUTPUT:
+
 Acc: 0.304
 interest.n.01  : p=0.269; r=0.096; f=0.269; s=73
 interest.n.03  : p=0.000; r=0.000; f=0.000; s=2
@@ -71,6 +82,6 @@ interest.n.04  : p=1.000; r=0.008; f=1.000; s=250
 
 Average Accuracy OG LESK: 0.2909724266509665
 Average Accuracy Sim LESK: 0.06756407168535516
-0.8167224199605713
-0.8479799466552483
-0.9058259961998555
+BOW: 0.8184075075155441
+COL Feats N windw + POS: 0.8479763784444385
+BOW + Feats: 0.90203031195083

@@ -1,3 +1,10 @@
+Lab Exercise: Language Model Evaluation
+Write your own implementation of the Stupid backoff algorithm. Train it and compare the perplexity with the one provided by NLKT. The dataset that you have to use is the Shakespeare Macbeth.
+
+Stupid Backoff algorithm (use ⍺=0.4): https://aclanthology.org/D07-1090.pdf
+
+NLTK (StupidBackoff): https://www.nltk.org/api/nltk.lm.html
+
 OUTPUT:
 
 [nltk_data] Downloading package gutenberg to C:\Users\Mateo-

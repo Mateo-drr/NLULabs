@@ -11,14 +11,37 @@ def cosine_similarity(v, w):
 #LSTM MODEL
 
 class LM_LSTM(nn.Module):
+    """
+    LSTM Language Model class.
+
+    Parameters:
+    - emb_size (int): Size of the word embeddings.
+    - hidden_size (int): Size of the hidden layer in LSTM.
+    - output_size (int): Size of the output vocabulary.
+    - pad_index (int): Index of the padding token (default is 0).
+    - out_dropout (float): Dropout probability for the output layer (default is 0.1).
+    - emb_dropout (float): Dropout probability for the embedding layer (default is 0.1).
+    - n_layers (int): Number of layers in the LSTM (default is 1).
+    - vardrop (bool): Whether to use variational dropout (default is False).
+    - dropprob (float): Dropout probability for variational dropout (default is 0).
+
+    Attributes:
+    - embedding (nn.Embedding): Token ids to vectors.
+    - lstm (nn.LSTM): PyTorch's LSTM layer.
+    - output (nn.Linear): Linear layer to project the hidden layer to the output space.
+    - drop1 (nn.Dropout): Dropout layer for the embedding.
+    - drop2 (nn.Dropout): Dropout layer for the output.
+    - pad_token (int): Index of the padding token.
+    - vardrop (bool): Flag indicating the use of variational dropout.
+    - dropprob (float): Dropout probability for variational dropout.
+    """
     def __init__(self, emb_size, hidden_size, output_size, pad_index=0, out_dropout=0.1,
-                 emb_dropout=0.1, n_layers=1, vardrop=False):
+                 emb_dropout=0.1, n_layers=1, vardrop=False,dropprob=0):
         super(LM_LSTM, self).__init__()
         # Token ids to vectors
         self.embedding = nn.Embedding(output_size, emb_size, padding_idx=pad_index)
         # Pytorch's LSTM layer
         self.lstm = nn.LSTM(emb_size, hidden_size, n_layers, bidirectional=False)
-        self.lstmvd = nn.LSTM(emb_size, hidden_size, n_layers, bidirectional=False, dropout=out_dropout)
         
         self.pad_token = pad_index
         # Linear layer to project the hidden layer to our output space
@@ -31,8 +54,9 @@ class LM_LSTM(nn.Module):
         # Weight tying
         self.output.weight = self.embedding.weight
         
-        # Variational Dropout
+        # Variational Dropout control
         self.vardrop = vardrop
+        self.dropprob = dropprob
         
     def checkPacked(x):
         is_packed = isinstance(x, PackedSequence)
@@ -43,16 +67,25 @@ class LM_LSTM(nn.Module):
             batch_sizes = None
             max_batch_size = x.size(0)
         return x,max_batch_size
-
+        
     def forward(self, input_sequence):
         emb = self.embedding(input_sequence)
-        emb = self.drop1(emb)
         
-        if self.vardrop:    
-            lstm_out, _ = self.lstmvd(emb)
-            lstm_out = self.drop2(lstm_out) #apply a single mask to whole output, not between lstm layers
+        if self.vardrop and self.training:    #dont apply dropout during training
+            x=emb
+            #sample a dropout mask
+            dropout_mask = x.new_empty(x.shape[0], 1, x.size(2), requires_grad=False).bernoulli_(1 - self.dropprob)
+            #since the expected input was x (without dropout) now we need to scale it
+            #Ex: dropprob is 0.4 then we'd be giving the output of value x*0.6 so we need to divide by 0.6 so it always gives x
+            #https://stackoverflow.com/questions/57193633/how-inverting-the-dropout-compensates-the-effect-of-dropout-and-keeps-expected-v
+            x = x * dropout_mask / (1 - self.dropprob)
+            lstm_out,_=self.lstm(emb)
+            #apply same dropout after
+            lstm_out = lstm_out* dropout_mask / (1 - self.dropprob)
         else:
-            lstm_out,_=self.lstm(emb) #lstm with internal dropout 
+            emb = self.drop1(emb)
+            lstm_out,_=self.lstm(emb)  
+            lstm_out = self.drop2(lstm_out)
         
         output = self.output(lstm_out).permute(0, 2, 1)
         return output

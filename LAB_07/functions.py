@@ -13,6 +13,15 @@ from sklearn_crfsuite import CRF
 from conllm import evaluate
 
 def sent2spacy_features(sent):
+    """
+    Convert a sentence to a list of spacy features.
+
+    Args:
+        sent (list): A list of tokens in a sentence.
+
+    Returns:
+        list: A list of dictionaries containing spacy features for each token in the sentence.
+    """
     spacy_sent = nlp(" ".join(sent2tokens(sent)))
     feats = []
     for token in spacy_sent:
@@ -27,6 +36,15 @@ def sent2spacy_features(sent):
     return feats
 
 def sent2spacy_features_s(sent):
+    """
+    Convert a sentence to a list of spacy features with additional suffix information.
+
+    Args:
+        sent (list): A list of tokens in a sentence.
+
+    Returns:
+        list: A list of dictionaries containing spacy features with suffix information for each token in the sentence.
+    """
     spacy_sent = nlp(" ".join(sent2tokens(sent)))
     feats = []
     for token in spacy_sent:
@@ -42,6 +60,16 @@ def sent2spacy_features_s(sent):
     return feats
 
 def allfeats(sent, i):
+    """
+    Extract features for a given token in the context of the entire sentence.
+
+    Args:
+        sent (list): A list of tokens in a sentence.
+        i (int): Index of the target token in the sentence.
+
+    Returns:
+        dict: A dictionary containing features for the target token in the given context.
+    """
     word = sent[i][0]
     postag = sent[i][1]
     
@@ -85,6 +113,15 @@ def allfeats(sent, i):
     return features
 
 def featsWcon1(trn_feats):
+    """
+    Add contextual information to each token in the dataset with one-token context.
+
+    Args:
+        trn_feats (list): A list of sentences, where each sentence is a list of token features.
+
+    Returns:
+        list: A modified list of sentences with contextual information added to each token.
+    """
     #Join context to each token
     f = copy.deepcopy(trn_feats)#[[] for _ in range(len(trn_feats))]
     for i in range(len(trn_feats)): #each sentence
@@ -149,6 +186,15 @@ def featsWcon1(trn_feats):
     return ss
 
 def featsWcon2(trn_feats):
+    """
+    Add contextual information to each token in the dataset with two-token context.
+
+    Args:
+        trn_feats (list): A list of sentences, where each sentence is a list of token features.
+
+    Returns:
+        list: A modified list of sentences with contextual information added to each token.
+    """
     #Join context to each token
     f = copy.deepcopy(trn_feats)#[[] for _ in range(len(trn_feats))]
     for i in range(len(trn_feats)): #each sentence
@@ -308,19 +354,66 @@ def featsWcon2(trn_feats):
     return ss
 
 def sent2features(sent):
+    """
+    Convert a sentence to a list of features for each token.
+
+    Args:
+        sent (list): A list of tokens in a sentence.
+
+    Returns:
+        list: A list of dictionaries containing features for each token in the sentence.
+    """
     return [allfeats(sent, i) for i in range(len(sent))]
 
 def sent2labels(sent):
+    """
+    Extract labels from a sentence.
+
+    Args:
+        sent (list): A list of tokens in a sentence.
+
+    Returns:
+        list: A list of labels corresponding to each token in the sentence.
+    """
     return [label for token, label in sent]
 
 def sent2tokens(sent):
+    """
+    Extract tokens from a sentence.
+
+    Args:
+        sent (list): A list of tokens in a sentence.
+
+    Returns:
+        list: A list of tokens in the sentence.
+    """
     return [token for token, label in sent]
 
 def word2features(sent, i):
+    """
+    Extract features for a given token.
+
+    Args:
+        sent (list): A list of tokens in a sentence.
+        i (int): Index of the target token in the sentence.
+
+    Returns:
+        dict: A dictionary containing features for the target token.
+    """
     word = sent[i][0]
     return {'bias': 1.0, 'word.lower()': word.lower()}
 
 def spacyfeats(trn_sents, tst_sents):
+    """
+    Extract spacy features from the training and testing datasets.
+
+    Args:
+        trn_sents (list): A list of training sentences.
+        tst_sents (list): A list of testing sentences.
+
+    Returns:
+        tuple: A tuple containing training and testing spacy features and labels.
+    """
     #format data to be used for training
     trn_feats = [sent2spacy_features(s) for s in trn_sents]
     trn_label = [sent2labels(s) for s in trn_sents]
@@ -329,16 +422,48 @@ def spacyfeats(trn_sents, tst_sents):
     return trn_feats, trn_label, tst_feats, tst_label
 
 def suffeats(trn_sents, tst_sents):
+    """
+    Extract features with suffix information from the training and testing datasets.
+
+    Args:
+        trn_sents (list): A list of training sentences.
+        tst_sents (list): A list of testing sentences.
+
+    Returns:
+        tuple: A tuple containing training and testing features with suffix information.
+    """
     trn_feats_s = [sent2spacy_features_s(s) for s in trn_sents]
     tst_feats_s = [sent2spacy_features_s(s) for s in tst_sents]
     return trn_feats_s, tst_feats_s
     
 def afeats(trn_sents, tst_sents):
+    """
+    Extract all features from the training and testing datasets.
+
+    Args:
+        trn_sents (list): A list of training sentences.
+        tst_sents (list): A list of testing sentences.
+
+    Returns:
+        tuple: A tuple containing training and testing all features.
+    """
     trn_feats_a = [sent2features(s) for s in trn_sents]
     tst_feats_a = [sent2features(s) for s in tst_sents]
     return trn_feats_a, tst_feats_a
 
 def runcrf(trn_feats, trn_label, tst_feats, tst_sents):
+    """
+    Run a CRF model on the provided datasets and evaluate the performance.
+
+    Args:
+        trn_feats: Features for training.
+        trn_label: Labels for training.
+        tst_feats: Features for testing.
+        tst_sents: Testing sentences.
+
+    Returns:
+        dict: Evaluation metrics for the CRF model on the testing dataset.
+    """
     
     crf = CRF(
         algorithm='lbfgs',

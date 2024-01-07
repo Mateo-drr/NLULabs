@@ -15,60 +15,94 @@ if __name__ == "__main__":
     # Print the results
     nltk.download('conll2002')
     
-    ###########################################################################
+    multiproc = False
+    if multiproc:
+        ###########################################################################
+        
+        # let's get only word and iob-tag
+        trn_sents = [[(text, iob) for text, pos, iob in sent] for sent in conll2002.iob_sents('esp.train')]
+        tst_sents = [[(text, iob) for text, pos, iob in sent] for sent in conll2002.iob_sents('esp.testa')]
+        
+        #Start multiprocess for faster processing
+        pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+        
+        #Get the base, suffix and all features data
+        result1 = pool.apply_async(spacyfeats,(trn_sents, tst_sents))
+        result2 = pool.apply_async(suffeats,(trn_sents, tst_sents))
+        result3 = pool.apply_async(afeats,(trn_sents, tst_sents))
+        
+        trn_feats, trn_label, tst_feats, tst_label = result1.get()
+        trn_feats_s, tst_feats_s = result2.get()
+        trn_feats_a, tst_feats_a = result3.get()
+        
+        # Close the pool
+        pool.close()
+        pool.join()
+        gc.collect()
+        
+        #Get the data with 1 and 2 of context
+        trn_feats_1 = featsWcon1(trn_feats)
+        tst_feats_1 = featsWcon1(tst_feats)
+        trn_feats_2 = featsWcon2(trn_feats)
+        tst_feats_2 = featsWcon2(tst_feats)
     
-    # let's get only word and iob-tag
-    trn_sents = [[(text, iob) for text, pos, iob in sent] for sent in conll2002.iob_sents('esp.train')]
-    tst_sents = [[(text, iob) for text, pos, iob in sent] for sent in conll2002.iob_sents('esp.testa')]
+        
+        ###########################################################################
+        
+        #Start multiprocessing for training
+        pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+        
+        res=[]
+        
+        #Get the results of each
+        res1 = pool.apply_async(runcrf,(trn_feats, trn_label, tst_feats, tst_sents))
+        res2 = pool.apply_async(runcrf,(trn_feats_s, trn_label, tst_feats_s, tst_sents))
+        res3 = pool.apply_async(runcrf,(trn_feats_a, trn_label, tst_feats_a, tst_sents))
+        res4 = pool.apply_async(runcrf,(trn_feats_1, trn_label, tst_feats_1, tst_sents))
+        res5 = pool.apply_async(runcrf,(trn_feats_2, trn_label, tst_feats_2, tst_sents))
+        
+        res.append(res1.get())
+        res.append(res2.get())
+        res.append(res3.get())
+        res.append(res4.get())
+        res.append(res5.get())
+        
+        # Close the pool            
+        pool.close()
+        pool.join()
+        gc.collect()
     
-    #Start multiprocess for faster processing
-    pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+    #without multiprocessing
+    else:
+        ###########################################################################
+        # let's get only word and iob-tag
+        trn_sents = [[(text, iob) for text, pos, iob in sent] for sent in conll2002.iob_sents('esp.train')]
+        tst_sents = [[(text, iob) for text, pos, iob in sent] for sent in conll2002.iob_sents('esp.testa')]
     
-    #Get the base, suffix and all features data
-    result1 = pool.apply_async(spacyfeats,(trn_sents, tst_sents))
-    result2 = pool.apply_async(suffeats,(trn_sents, tst_sents))
-    result3 = pool.apply_async(afeats,(trn_sents, tst_sents))
+        # Get the base, suffix, and all features data
+        trn_feats, trn_label, tst_feats, tst_label = spacyfeats(trn_sents, tst_sents)
+        trn_feats_s, tst_feats_s = suffeats(trn_sents, tst_sents)
+        trn_feats_a, tst_feats_a = afeats(trn_sents, tst_sents)
     
-    trn_feats, trn_label, tst_feats, tst_label = result1.get()
-    trn_feats_s, tst_feats_s = result2.get()
-    trn_feats_a, tst_feats_a = result3.get()
+        # Get the data with 1 and 2 of context
+        trn_feats_1 = featsWcon1(trn_feats)
+        tst_feats_1 = featsWcon1(tst_feats)
+        trn_feats_2 = featsWcon2(trn_feats)
+        tst_feats_2 = featsWcon2(tst_feats)
     
-    # Close the pool
-    pool.close()
-    pool.join()
-    gc.collect()
+        ###########################################################################
     
-    #Get the data with 1 and 2 of context
-    trn_feats_1 = featsWcon1(trn_feats)
-    tst_feats_1 = featsWcon1(tst_feats)
-    trn_feats_2 = featsWcon2(trn_feats)
-    tst_feats_2 = featsWcon2(tst_feats)
-
+        # Run CRF for each set of features
+        res = []
     
-    ###########################################################################
+        res1 = runcrf(trn_feats, trn_label, tst_feats, tst_sents)
+        res2 = runcrf(trn_feats_s, trn_label, tst_feats_s, tst_sents)
+        res3 = runcrf(trn_feats_a, trn_label, tst_feats_a, tst_sents)
+        res4 = runcrf(trn_feats_1, trn_label, tst_feats_1, tst_sents)
+        res5 = runcrf(trn_feats_2, trn_label, tst_feats_2, tst_sents)
     
-    #Start multiprocessing for training
-    pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-    
-    res=[]
-    
-    #Get the results of each
-    res1 = pool.apply_async(runcrf,(trn_feats, trn_label, tst_feats, tst_sents))
-    res2 = pool.apply_async(runcrf,(trn_feats_s, trn_label, tst_feats_s, tst_sents))
-    res3 = pool.apply_async(runcrf,(trn_feats_a, trn_label, tst_feats_a, tst_sents))
-    res4 = pool.apply_async(runcrf,(trn_feats_1, trn_label, tst_feats_1, tst_sents))
-    res5 = pool.apply_async(runcrf,(trn_feats_2, trn_label, tst_feats_2, tst_sents))
-    
-    res.append(res1.get())
-    res.append(res2.get())
-    res.append(res3.get())
-    res.append(res4.get())
-    res.append(res5.get())
-    
-    # Close the pool            
-    pool.close()
-    pool.join()
-    gc.collect()
+        res.extend([res1, res2, res3, res4, res5])
+        
     
     #Print the results in table format
     name = ['Baseline', 'Suffix', 'All Features', 'Context 1', 'Context 2']

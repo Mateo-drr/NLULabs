@@ -65,8 +65,9 @@ if __name__ == "__main__":
 
     print("\nAverage Accuracy OG LESK:", np.mean(np.array(ac)))
     print("Average Accuracy Sim LESK:", np.mean(np.array(ac2)))
-    for scores in sc:
-        print(sum(scores['test_f1_micro'])/len(scores['test_f1_micro']))
+    n = ['BOW','COL Feats N windw + POS','BOW + Feats']
+    for i,scores in enumerate(sc):
+        print(n[i]+':',sum(scores['test_f1_micro'])/len(scores['test_f1_micro']))
     
     
     

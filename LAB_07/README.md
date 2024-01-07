@@ -1,76 +1,71 @@
-Acc: 0.304
-interest.n.01  : p=0.269; r=0.096; f=0.269; s=73
-interest.n.03  : p=0.000; r=0.000; f=0.000; s=2
-pastime.n.01   : p=0.039; r=0.308; f=0.039; s=13
-sake.n.01      : p=0.091; r=0.457; f=0.091; s=35
-interest.n.05  : p=0.344; r=0.110; f=0.344; s=100
-interest.n.04  : p=0.869; r=0.422; f=0.869; s=251
-Acc: 0.068
-interest.n.01  : p=0.000; r=0.000; f=0.000; s=73
-interest.n.03  : p=0.000; r=0.000; f=0.000; s=2
-pastime.n.01   : p=0.037; r=0.385; f=0.037; s=13
-sake.n.01      : p=0.049; r=0.429; f=0.049; s=35
-interest.n.05  : p=0.375; r=0.090; f=0.375; s=100
-interest.n.04  : p=1.000; r=0.012; f=1.000; s=251
-Acc: 0.268
-interest.n.01  : p=0.231; r=0.083; f=0.231; s=72
-interest.n.03  : p=0.000; r=0.000; f=0.000; s=2
-pastime.n.01   : p=0.018; r=0.143; f=0.018; s=14
-sake.n.01      : p=0.091; r=0.457; f=0.091; s=35
-interest.n.05  : p=0.143; r=0.030; f=0.143; s=100
-interest.n.04  : p=0.862; r=0.398; f=0.862; s=251
-Acc: 0.076
-interest.n.01  : p=0.333; r=0.014; f=0.333; s=72
-interest.n.03  : p=0.000; r=0.000; f=0.000; s=2
-pastime.n.01   : p=0.015; r=0.143; f=0.015; s=14
-sake.n.01      : p=0.079; r=0.686; f=0.079; s=35
-interest.n.05  : p=0.258; r=0.080; f=0.258; s=100
-interest.n.04  : p=1.000; r=0.004; f=1.000; s=251
-Acc: 0.278
-interest.n.01  : p=0.250; r=0.097; f=0.250; s=72
-interest.n.03  : p=0.000; r=0.000; f=0.000; s=3
-pastime.n.01   : p=0.016; r=0.154; f=0.016; s=13
-sake.n.01      : p=0.099; r=0.444; f=0.099; s=36
-interest.n.05  : p=0.333; r=0.070; f=0.333; s=100
-interest.n.04  : p=0.877; r=0.400; f=0.877; s=250
-Acc: 0.068
-interest.n.01  : p=0.000; r=0.000; f=0.000; s=72
-interest.n.03  : p=0.000; r=0.000; f=0.000; s=3
-pastime.n.01   : p=0.052; r=0.462; f=0.052; s=13
-sake.n.01      : p=0.056; r=0.500; f=0.056; s=36
-interest.n.05  : p=0.286; r=0.080; f=0.286; s=100
-interest.n.04  : p=0.000; r=0.000; f=0.000; s=250
-Acc: 0.311
-interest.n.01  : p=0.265; r=0.125; f=0.265; s=72
-interest.n.03  : p=0.000; r=0.000; f=0.000; s=2
-pastime.n.01   : p=0.042; r=0.385; f=0.042; s=13
-sake.n.01      : p=0.122; r=0.500; f=0.122; s=36
-interest.n.05  : p=0.300; r=0.090; f=0.300; s=100
-interest.n.04  : p=0.883; r=0.424; f=0.883; s=250
-Acc: 0.072
-interest.n.01  : p=0.333; r=0.014; f=0.333; s=72
-interest.n.03  : p=0.000; r=0.000; f=0.000; s=2
-pastime.n.01   : p=0.032; r=0.308; f=0.032; s=13
-sake.n.01      : p=0.075; r=0.667; f=0.075; s=36
-interest.n.05  : p=0.174; r=0.040; f=0.174; s=100
-interest.n.04  : p=1.000; r=0.004; f=1.000; s=250
-Acc: 0.294
-interest.n.01  : p=0.138; r=0.056; f=0.138; s=72
-interest.n.03  : p=0.000; r=0.000; f=0.000; s=2
-pastime.n.01   : p=0.026; r=0.231; f=0.026; s=13
-sake.n.01      : p=0.136; r=0.639; f=0.136; s=36
-interest.n.05  : p=0.286; r=0.060; f=0.286; s=100
-interest.n.04  : p=0.880; r=0.412; f=0.880; s=250
-Acc: 0.055
-interest.n.01  : p=0.000; r=0.000; f=0.000; s=72
-interest.n.03  : p=0.000; r=0.000; f=0.000; s=2
-pastime.n.01   : p=0.023; r=0.231; f=0.023; s=13
-sake.n.01      : p=0.054; r=0.472; f=0.054; s=36
-interest.n.05  : p=0.190; r=0.040; f=0.190; s=100
-interest.n.04  : p=1.000; r=0.008; f=1.000; s=250
+Lab Exercise
+The exsecise is to experiment with a CRF model on NER task. You have to train and test a CRF with using different features on the conll2002 corpus (the same that we used here in the lab).
 
-Average Accuracy OG LESK: 0.2909724266509665
-Average Accuracy Sim LESK: 0.06756407168535516
-0.8167224199605713
-0.8479799466552483
-0.9058259961998555
+The features that you have to experiment with are:
+
+Baseline using the fetures in sent2spacy_features
+Train the model and print results on the test set
+Add the "suffix" feature
+Train the model and print results on the test set
+Add all the features used in the tutorial on CoNLL dataset
+Train the model and print results on the test set
+Increase the feature window (number of previous and next token) to:
+[-1, +1]
+Train the model and print results on the test set
+[-2, +2]
+Train the model and print results on the test set
+The format of the results has to be the table that we used so far, that is:
+
+results = evaluate(tst_sents, hyp)
+pd_tbl = pd.DataFrame().from_dict(results, orient='index')
+pd_tbl.round(decimals=3)
+
+OUTPUT:
+[nltk_data] Downloading package conll2002 to C:\Users\Mateo-
+[nltk_data]     drr\AppData\Roaming\nltk_data...
+[nltk_data]   Package conll2002 is already up-to-date!
+---------------------------------------
+Baseline
+              p         r         f     s
+LOC    0.724480  0.742132  0.733200   985
+ORG    0.607407  0.723529  0.660403  1700
+MISC   0.624183  0.429213  0.508655   445
+PER    0.819588  0.650573  0.725365  1222
+total  0.683759  0.677160  0.680443  4352
+---------------------------------------
+---------------------------------------
+Suffix
+              p         r         f     s
+MISC   0.623003  0.438202  0.514512   445
+LOC    0.657689  0.768528  0.708801   985
+PER    0.810395  0.689034  0.744803  1222
+ORG    0.692308  0.682941  0.687593  1700
+total  0.706938  0.678998  0.692686  4352
+---------------------------------------
+---------------------------------------
+All Features
+         p    r    f     s
+PER    1.0  1.0  1.0  1222
+MISC   1.0  1.0  1.0   445
+ORG    1.0  1.0  1.0  1700
+LOC    1.0  1.0  1.0   985
+total  1.0  1.0  1.0  4352
+---------------------------------------
+---------------------------------------
+Context 1
+              p         r         f     s
+LOC    0.653650  0.781726  0.711974   985
+PER    0.827735  0.786416  0.806546  1222
+ORG    0.770129  0.737059  0.753231  1700
+MISC   0.548851  0.429213  0.481715   445
+total  0.735976  0.729550  0.732749  4352
+---------------------------------------
+---------------------------------------
+Context 2
+              p         r         f     s
+ORG    0.741803  0.745294  0.743545  1700
+PER    0.829464  0.760229  0.793339  1222
+MISC   0.554517  0.400000  0.464752   445
+LOC    0.662371  0.782741  0.717543   985
+total  0.729191  0.722656  0.725909  4352
+---------------------------------------

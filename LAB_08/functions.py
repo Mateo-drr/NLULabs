@@ -24,6 +24,17 @@ mapping = {
 }
 
 def preprocess(text):
+    """
+    Preprocesses text by tokenizing, pos-tagging, lowercasing, filtering by selected POS tags,
+    re-mapping tags to WordNet, removing stopwords, lemmatizing, and returning unique tokens.
+
+    Parameters:
+    - text (str or list): Input text or list of tokens.
+
+    Returns:
+    list: List of unique tuples containing (original word, lemmatized word, POS tag).
+    """
+    
     mapping = {"NOUN": wordnet.NOUN, "VERB": wordnet.VERB, "ADJ": wordnet.ADJ, "ADV": wordnet.ADV}
     sw_list = stopwords.words('english')
     
@@ -48,6 +59,16 @@ def preprocess(text):
     return tagged
 
 def get_sense_definitions(context):
+    """
+    Obtains sense definitions for words in the given context.
+
+    Parameters:
+    - context (str or list): Input text or list of strings.
+
+    Returns:
+    list: List of tuples containing raw word and its sense definitions,
+          where each definition is represented by a tuple (synset, preprocessed tokens).
+    """
     # input is text or list of strings
     lemma_tags = preprocess(context)
     # let's get senses for each
@@ -69,13 +90,35 @@ def get_sense_definitions(context):
     return definitions
 
 def get_top_sense(words, sense_list):
+    """
+    Retrieves the top sense from a list of sense-definition tuples based on word overlap.
+
+    Parameters:
+    - words (list): List of preprocessed words.
+    - sense_list (list): List of tuples containing synset and preprocessed tokens.
+
+    Returns:
+    tuple: Tuple containing the count of overlapping words and the corresponding synset.
+    """
     # get top sense from the list of sense-definition tuples
     # assumes that words and definitions are preprocessed identically
     val, sense = max((len(set(words).intersection(set(defn))), ss) for ss, defn in sense_list)
     return val, sense
 
 def original_lesk(context_sentence, ambiguous_word, pos=None, synsets=None, majority=False):
+    """
+    Original Lesk algorithm for word sense disambiguation.
 
+    Parameters:
+    - context_sentence (list): List of preprocessed words in the context.
+    - ambiguous_word (str): The word for which sense disambiguation is performed.
+    - pos (str): Optional POS tag to filter synsets.
+    - synsets (list): List of synsets for the ambiguous word.
+    - majority (bool): Flag to determine if majority voting should be used.
+
+    Returns:
+    str: The selected sense for the ambiguous word.
+    """
     context_senses = get_sense_definitions(set(context_sentence)-set([ambiguous_word]))
     if synsets is None:
         synsets = get_sense_definitions(ambiguous_word)[0][1]
@@ -106,6 +149,17 @@ def original_lesk(context_sentence, ambiguous_word, pos=None, synsets=None, majo
     return best_sense
 
 def get_top_sense_sim(context_sense, sense_list, similarity):
+    """
+    Get the top sense from a list of sense-definition tuples based on a specified similarity metric.
+
+    Parameters:
+    - context_sense (WordNet Synset): Synset for the context sense.
+    - sense_list (list): List of tuples containing synset and preprocessed tokens.
+    - similarity (str): The similarity metric to use ("path", "lch", "wup", "resnik", "lin", "jiang").
+
+    Returns:
+    tuple: Tuple containing the similarity score and the corresponding synset.
+    """
     # get top sense from the list of sense-definition tuples
     # assumes that words and definitions are preprocessed identically
     scores = []
@@ -149,6 +203,20 @@ def get_top_sense_sim(context_sense, sense_list, similarity):
 
 def lesk_similarity(context_sentence, ambiguous_word, similarity="resnik", pos=None, 
                     synsets=None, majority=True):
+    """
+    Lesk algorithm for word sense disambiguation using WordNet similarity metrics.
+
+    Parameters:
+    - context_sentence (list): List of preprocessed words in the context.
+    - ambiguous_word (str): The word for which sense disambiguation is performed.
+    - similarity (str): The similarity metric to use ("path", "lch", "wup", "resnik", "lin", "jiang").
+    - pos (str): Optional POS tag to filter synsets.
+    - synsets (list): List of synsets for the ambiguous word.
+    - majority (bool): Flag to determine if majority voting should be used.
+
+    Returns:
+    str: The selected sense for the ambiguous word.
+    """
     context_senses = get_sense_definitions(set(context_sentence) - set([ambiguous_word]))
     
     if synsets is None:
@@ -185,6 +253,16 @@ def lesk_similarity(context_sentence, ambiguous_word, similarity="resnik", pos=N
     return best_sense
 
 def leskEval(data,option):
+    """
+    Lesk algorithm for word sense disambiguation evaluation.
+
+    Parameters:
+    - data (list): List of Senseval instances.
+    - option (int): Option to choose Lesk algorithm variant (1 for original, 2 for modified).
+
+    Returns:
+    float: Accuracy score.
+    """
     refs = {k: set() for k in mapping.values()}
     hyps = {k: set() for k in mapping.values()}
     refs_list = []
@@ -235,6 +313,13 @@ def leskEval(data,option):
     return ac
     
 def dataproc():
+    """
+    Process data to get a list of sentences (data) and corresponding sense labels (lbls).
+
+    Returns:
+    tuple: A tuple containing the list of sentences, sense labels, encoded data vectors,
+           encoded labels, and a stratified K-fold splitter.
+    """
     #Process data to get a list of sentences (data) and what meaning the word of interest has (lbls)
     data = [" ".join([t[0] for t in inst.context]) for inst in senseval.instances('interest.pos')]
     lbls = [inst.senses[0] for inst in senseval.instances('interest.pos')]
@@ -252,6 +337,17 @@ def dataproc():
     return data,lbls,vectors,labels, stratified_split
 
 def collocational_features_n(inst, n, pos):
+    """
+    Extract collocational features for a given instance.
+    
+    Parameters:
+    - inst (SensevalInstance): The Senseval instance.
+    - n (int): The range of words to consider around the target word.
+    - pos (bool): Flag to include part-of-speech information.
+    
+    Returns:
+    dict: Dictionary containing collocational features.
+    """
     p = inst.position
     features = {}
     # Iterate from -n to +n
@@ -269,6 +365,16 @@ def collocational_features_n(inst, n, pos):
     return features
 
 def getJointData(instances, n):
+    """
+    Extract joint collocational features for a list of Senseval instances.
+
+    Parameters:
+    - instances (list): List of Senseval instances.
+    - n (int): The range of words to consider around the target word.
+
+    Returns:
+    array: Array containing the joint collocational features.
+    """
     data_col = []
     for inst in instances:
         features = collocational_features_n(inst, n, True)

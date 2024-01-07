@@ -81,6 +81,12 @@ weighted_rules = [
     ]
 
 def getGrammar():
+    """
+    Get a PCFG from the Treebank dataset.
+ 
+    Returns:
+    grammar (nltk.grammar.PCFG): Probabilistic Context-Free Grammar induced from the Treebank dataset.
+    """
     productions = []
     for item in treebank.fileids():
         for tree in treebank.parsed_sents(item):
@@ -90,10 +96,23 @@ def getGrammar():
     return grammar
 
 def cstmGrammar():
-    toy_grammar = nltk.PCFG.fromstring(weighted_rules)
-    return toy_grammar
+    """
+    Define a custom PCFG.
+
+    Returns:
+    cstm_grammar (nltk.grammar.PCFG): Custom Probabilistic Context-Free Grammar.
+    """
+    cstm_grammar = nltk.PCFG.fromstring(weighted_rules)
+    return cstm_grammar
 
 def printTrees(grammar,test_sents):
+    """
+    Parse and print parse trees for given sentences using the Viterbi parser.
+
+    Parameters:
+    grammar (nltk.grammar.PCFG): Probabilistic Context-Free Grammar.
+    test_sents (list): List of sentences to parse and print.
+    """
     for sent in test_sents:
         parser = nltk.ViterbiParser(grammar)
         for tree in parser.parse(sent.split()):

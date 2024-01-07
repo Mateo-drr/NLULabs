@@ -4,7 +4,7 @@ import nltk
 from nltk.corpus import treebank
 import spacy
 from spacy.tokenizer import Tokenizer
-from nltk.tag import NgramTagger, untag
+from nltk.tag import NgramTagger
 from nltk.metrics import accuracy
 import spacy.cli
 from itertools import chain
@@ -13,6 +13,13 @@ from itertools import chain
 idx=3131
 
 def res(nk, sp):
+    """
+    Print the comparison of accuracy results between NLTK and SpaCy taggers.
+
+    Parameters:
+    nk (list): List containing NLTK accuracy results.
+    sp (list): List containing SpaCy accuracy results.
+    """
     for i in range(0,len(nk)):
         print('--------------------', 'Ngrams lvl', i+1)
         for clvl in range(0,len(nk[i])):
@@ -23,6 +30,14 @@ def res(nk, sp):
     
     
 def loadData():
+    """
+    Load the Treebank dataset and SpaCy model.
+
+    Returns:
+    sents (list): Tagged sentences from the Treebank dataset.
+    usents (list): Untagged sentences from the Treebank dataset.
+    nlp (spacy.language.Language): SpaCy language model.
+    """
     nltk.download('treebank')
     spacy.cli.download("en_core_web_sm")
     nlp = spacy.load("en_core_web_sm")
@@ -34,6 +49,17 @@ def loadData():
     return sents, usents, nlp
 
 def spacyTag(usents, nlp, mapping_spacy_to_NLTK):
+    """
+    Tag sentences using SpaCy and convert to NLTK format.
+
+    Parameters:
+    usents (list): Untagged sentences.
+    nlp (spacy.language.Language): SpaCy language model.
+    mapping_spacy_to_NLTK (dict): Mapping from SpaCy POS tags to NLTK POS tags.
+
+    Returns:
+    spacy_test_sents (list): Tagged sentences in NLTK format.
+    """
     #Spacy tagger
     # Tag the train set with SpaCy and convert to NLTK format
     spacy_test_sents = []
@@ -46,6 +72,18 @@ def spacyTag(usents, nlp, mapping_spacy_to_NLTK):
     return spacy_test_sents
     
 def testTag(sents, usents, spacy_test_sents):
+    """
+    Test NLTK and SpaCy taggers using NgramTagger with different n-grams and cutoffs.
+
+    Parameters:
+    sents (list): Tagged sentences for training.
+    usents (list): Untagged sentences for testing.
+    spacy_test_sents (list): Tagged sentences in NLTK format using SpaCy.
+
+    Returns:
+    nk (list): List of NLTK accuracy results.
+    sp (list): List of SpaCy accuracy results.
+    """
     nk=[[],[],[]]
     sp=[[],[],[]]
     
@@ -69,8 +107,15 @@ def testTag(sents, usents, spacy_test_sents):
     return nk, sp
 
 def spacyAcc(spacy_sents):
-    
-    #test_tags = get_mapping_tags_to_nltk(nlp, start_index=train_index)
+    """
+    Evaluate the accuracy of the SpaCy tagger.
+ 
+    Parameters:
+    spacy_sents (list): Tagged sentences using SpaCy.
+ 
+    Returns:
+    accuracy_spacy (float): Accuracy of the SpaCy tagger.
+    """
     tags = treebank.tagged_sents(tagset='universal')[idx:]
     tags = list(chain.from_iterable(tags))
     accuracy_spacy = accuracy(list(chain.from_iterable(spacy_sents[idx:])), tags)

@@ -9,6 +9,23 @@ def cosine_similarity(v, w):
     return np.dot(v,w)/(norm(v)*norm(w))    
  
 class LM_RNN(nn.Module):
+    """
+    Recurrent Neural Network (RNN) language model.
+
+    Parameters:
+    - emb_size (int): Dimensionality of word embeddings.
+    - hidden_size (int): Number of features in the hidden state of the RNN.
+    - output_size (int): Size of the vocabulary.
+    - pad_index (int): Index of the padding token in the vocabulary.
+    - out_dropout (float): Dropout applied to the output layer.
+    - emb_dropout (float): Dropout applied to the word embeddings.
+    - n_layers (int): Number of recurrent layers.
+
+    Methods:
+    - forward(input_sequence): Forward pass of the model.
+    - get_word_embedding(token): Get the word embedding for a given token.
+    - get_most_similar(vector, top_k=10): Get the indices and scores of the most similar tokens to a given vector.
+    """
     def __init__(self, emb_size, hidden_size, output_size, pad_index=0, out_dropout=0.1,
                  emb_dropout=0.1, n_layers=1):
         super(LM_RNN, self).__init__()
@@ -44,6 +61,23 @@ class LM_RNN(nn.Module):
 ###########################################################################
 #LSTM MODEL
 class LM_LSTM(nn.Module):
+    """
+    Long Short-Term Memory (LSTM) language model.
+
+    Parameters:
+    - emb_size (int): Dimensionality of word embeddings.
+    - hidden_size (int): Number of features in the hidden state of the LSTM.
+    - output_size (int): Size of the vocabulary.
+    - pad_index (int): Index of the padding token in the vocabulary.
+    - out_dropout (float): Dropout applied to the output layer.
+    - emb_dropout (float): Dropout applied to the word embeddings.
+    - n_layers (int): Number of recurrent layers.
+
+    Methods:
+    - forward(input_sequence): Forward pass of the model.
+    - get_word_embedding(token): Get the word embedding for a given token.
+    - get_most_similar(vector, top_k=10): Get the indices and scores of the most similar tokens to a given vector.
+    """
     def __init__(self, emb_size, hidden_size, output_size, pad_index=0, out_dropout=0.1,
                  emb_dropout=0.1, n_layers=1):
         super(LM_LSTM, self).__init__()

@@ -29,7 +29,7 @@ if __name__ == "__main__":
         'SPACE': 'SP'
     }
     '''
-    #This other mapping gives the same result
+    #This other mapping gives the same result for testing spacy w nltktagger, but cant be used to compare them directly
     
     mapping_spacy_to_NLTK = {
         "ADJ": "ADJ",

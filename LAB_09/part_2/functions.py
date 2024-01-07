@@ -9,9 +9,56 @@ import numpy as np
 import torch
 import torch.nn as nn
 import spacy
+import torch.optim as optim
 nlp = spacy.load('en_core_web_lg')
 
 def train_loop(data, optimizer, criterion, model, clip=5):
+    """
+    Trains the provided model on the given data using the specified optimizer
+    and criterion.
+
+    Parameters:
+    - data (iterable): dataloader
+    - optimizer (torch.optim.Optimizer): The optimizer to use for training.
+    - criterion (torch.nn.Module): The loss criterion for training.
+    - model (nn.Module): The PyTorch model to be trained.
+    - clip (float): Gradient clipping threshold (default is 5).
+
+    Returns:
+    - float: Average training loss per token.
+    """
+    model.train()
+    loss_array = []
+    number_of_tokens = []
+    for sample in data:
+        optimizer.zero_grad() # Zeroing the gradient
+        output = model(sample['source'])
+        loss = criterion(output, sample['target'])
+        loss_array.append(loss.item() * sample["number_tokens"])
+        number_of_tokens.append(sample["number_tokens"])
+        loss.backward() # Compute the gradient, deleting the computational graph
+        # clip the gradient to avoid explosioning gradients
+        torch.nn.utils.clip_grad_norm_(model.parameters(), clip)  
+        optimizer.step() # Update the weights
+    return sum(loss_array)/sum(number_of_tokens)
+
+def train_loopNT(data, optimizer, criterion, model, config, dev_loader, eval_criterion, clip=5):
+    """
+    Trains the model with NT-ASGD.
+
+    Parameters:
+    - data (iterable): Iterable containing training samples.
+    - optimizer (torch.optim.Optimizer): The optimizer to use for training.
+    - criterion (torch.nn.Module): The loss criterion for training.
+    - model (nn.Module): The PyTorch model to be trained.
+    - config (dict): Dictionary containing various optimzer data.
+    - dev_loader (iterable): Iterable containing development/validation samples.
+    - eval_criterion (torch.nn.Module): The evaluation loss criterion.
+    - clip (float): Gradient clipping threshold (default is 5).
+
+    Returns:
+    - float: Average training loss per token.
+    """
     model.train()
     loss_array = []
     number_of_tokens = []
@@ -27,10 +74,62 @@ def train_loop(data, optimizer, criterion, model, clip=5):
         torch.nn.utils.clip_grad_norm_(model.parameters(), clip)  
         optimizer.step() # Update the weights
         
+        if config['k'] % config['L'] == 0: #and config['T'] == 0: #and config['k'] != 0:
+            valid_perp,_ = eval_loop(dev_loader, eval_criterion, model)
+            model.train()
+            
+            if len(config['logs']) != 0 :
+                if config['t'] > config['n'] and valid_perp > min(config['logs'][:config['t'] - config['n']]):
+                    print(config)
+                    update_optimizer_parameters(model, optimizer, config['T'], config['k'])
+                    # optimizer = update_optimizer_parameters(model, optimizer,config)
+                    config['T'] = config['k']
+            config['logs'].append(valid_perp)
+            config['t'] += 1
+    
+        config['k'] += 1
+        
     return sum(loss_array)/sum(number_of_tokens)
+
+def update_optimizer_parameters(model, optimizer, start_iter, end_iter):
+    """
+    Updates the optimizer's parameters during NT-ASGD optimization.
+
+    Parameters:
+    - model (nn.Module): The PyTorch model.
+    - optimizer (torch.optim.Optimizer): The optimizer.
+    - start_iter (int): Start iteration index. T 
+    - end_iter (int): End iteration index. k
+    """
+    # optimizer.param_groups[0]['t0'] = config['T']
+    # for g in optimizer.param_groups:
+    #     g['lr'] = config['lr']
+    # return optimizer
+    # Iterate over parameter groups in the optimizer
+    for param_group in optimizer.param_groups:
+        # Iterate over parameters within the current parameter group
+        for param in param_group['params']:
+            # param.data: Current parameter's data: weights or biases
+            # param.grad.data: Gradient of the loss with respect to the parameter
+            # .add_(): In-place operation that updates the parameter data
+            # It adds the product of the lr and the gradient to the parameter
+            # alpha=(param_group['lr'] / (end_iter + 1 - start_iter + 1)): Scale factor for the addition
+            param.data.add_(param.grad.data, alpha=(param_group['lr'] / (end_iter + 1 - start_iter + 1)))
+
 
 
 def eval_loop(data, eval_criterion, model):
+    """
+    Evaluates the model on the eval data.
+
+    Parameters:
+    - data (iterable): Iterable containing evaluation samples.
+    - eval_criterion (torch.nn.Module): The evaluation loss criterion.
+    - model (nn.Module): The PyTorch model to be evaluated.
+
+    Returns:
+    - tuple: A tuple containing perplexity and average evaluation loss per token.
+    """
     model.eval()
     loss_to_return = []
     loss_array = []
@@ -49,6 +148,12 @@ def eval_loop(data, eval_criterion, model):
 
 
 def init_weights(mat):
+    """
+    Initializes the weights of the specified PyTorch module.
+
+    Parameters:
+    - mat (nn.Module): PyTorch module to initialize weights.
+    """
     for m in mat.modules():
         if type(m) in [nn.GRU, nn.LSTM, nn.RNN]:
             for name, param in m.named_parameters():
@@ -70,6 +175,12 @@ def init_weights(mat):
                     
                     
 def analogy_spacy(w1, w2, w3):
+    """
+    Performs word analogy using spaCy word vectors.
+
+    Parameters:
+    - w1, w2, w3 (str): Input words for analogy.
+    """
     v1 = nlp.vocab[w1].vector
     v2 = nlp.vocab[w2].vector
     v3 = nlp.vocab[w3].vector
@@ -85,6 +196,14 @@ def analogy_spacy(w1, w2, w3):
         print(nlp.vocab.strings[key], ms[2][0][i])
         
 def analogy_our_model(w1, w2, w3, model, lang):
+    """
+    Performs word analogy using the provided PyTorch model.
+
+    Parameters:
+    - w1, w2, w3 (str): Input words for analogy.
+    - model (nn.Module): The PyTorch model.
+    - lang: Language model containing word-to-id and id-to-word mappings.
+    """
     model.eval().to('cpu')
     tmp_w1 = torch.LongTensor([lang.word2id[w1] if w1 in lang.word2id else lang.word2id['<unk>']]) 
     tmp_w2 = torch.LongTensor([lang.word2id[w2] if w2 in lang.word2id else lang.word2id['<unk>']])
@@ -105,7 +224,32 @@ def analogy_our_model(w1, w2, w3, model, lang):
         print(lang.id2word[key], ms[1][i])
         
         
-def runModel(n_epochs, optimizer, criterion_train, criterion_eval, model, clip, dev_loader,train_loader,test_loader,lang, device):
+def runModel(n_epochs, optimizer, criterion_train, criterion_eval, model, clip,
+             dev_loader,train_loader,test_loader,lang, device, ntasgd=False,
+             patience=10,config=None):
+    """
+    Train and eval the PyTorch model.
+
+    Parameters:
+    - n_epochs (int): Number of training epochs.
+    - optimizer (torch.optim.Optimizer): The optimizer for training.
+    - criterion_train (torch.nn.Module): The training loss criterion.
+    - criterion_eval (torch.nn.Module): The evaluation loss criterion.
+    - model (nn.Module): The PyTorch model to be trained and evaluated.
+    - clip (float): Gradient clipping threshold.
+    - dev_loader (iterable): Iterable containing development/validation samples.
+    - train_loader (iterable): Iterable containing training samples.
+    - test_loader (iterable): Iterable containing test samples.
+    - lang: Language model containing word-to-id and id-to-word mappings.
+    - device (str): Device to which the model should be moved.
+    - ntasgd (bool): Whether to use NT-ASGD optimization (default is False).
+    - patience (int): Patience for early stopping (default is 10).
+    - config (dict): Dictionary containing ntasgd configurations.
+
+    Returns:
+    - nn.Module: The best model based on the evaluation results.
+    """
+    pOg= patience
     losses_train = []
     losses_dev = []
     sampled_epochs = []
@@ -113,31 +257,62 @@ def runModel(n_epochs, optimizer, criterion_train, criterion_eval, model, clip, 
     best_model = None
     pbar = tqdm(range(1,n_epochs))
     for epoch in pbar:
-        loss = train_loop(train_loader, optimizer, criterion_train, model, clip)    
-        
+        if not ntasgd:
+            loss = train_loop(train_loader, optimizer, criterion_train, model, clip)    
+        else:
+            loss = train_loopNT(train_loader, optimizer, criterion_train, model, config, dev_loader, criterion_eval)
+            
         if epoch % 1 == 0:
             sampled_epochs.append(epoch)
             losses_train.append(np.asarray(loss).mean())
             ppl_dev, loss_dev = eval_loop(dev_loader, criterion_eval, model)
+            
             losses_dev.append(np.asarray(loss_dev).mean())
-            pbar.set_description("PPL: %f" % ppl_dev)
+            pbar.set_description("PPL: %f, Best: %f" % (ppl_dev, best_ppl))
             if  ppl_dev < best_ppl: # the lower, the better
                 best_ppl = ppl_dev
                 best_model = copy.deepcopy(model).to('cpu')
-                patience = 3
+                patience = pOg
             else:
                 patience -= 1
                 
             if patience <= 0: # Early stopping with patience
+                print('Patience Limit Reached!')
                 break # Not nice but it keeps the code clean
+            
+    return best_model
 
-        model.newvd=True #unlock mask for new epoch
-                     
+def testModel(best_model,device, test_loader, criterion_eval, lang):
+    """
+    Tests the provided model on the test data and prints the results.
+
+    Parameters:
+    - best_model (nn.Module): The best model to be tested.
+    - device (str): Device to which the model should be moved.
+    - test_loader (iterable): Iterable containing test samples.
+    - criterion_eval (torch.nn.Module): The evaluation loss criterion.
+    - lang: Language model containing word-to-id and id-to-word mappings.
+
+    Returns:
+    - float: Test perplexity.
+    """
     best_model.to(device)
     final_ppl,  _ = eval_loop(test_loader, criterion_eval, best_model)    
     print('Test ppl: ', final_ppl)
 
-    analogy_our_model('man', 'woman', 'u.s.', model, lang)
+    analogy_our_model('man', 'woman', 'u.s.', best_model, lang)
     
     print(analogy_spacy('man', 'woman', 'king'))
     return final_ppl
+
+def printRes(pptot):
+    """
+    Prints the results based on the provided perplexities.
+
+    Parameters:
+    - pptot (list): List of perplexities for different models and configurations.
+    """
+    lbl=['WT+DO+AdW', 'WT+VDO+Adw', 'WT+VDO+SGD', 'WT+VDO+NTASGD (init ASGD)', 'WT+VDO+NTASGD (init SGD)']
+    print('\n')
+    for i,name in enumerate(lbl):
+        print(name, np.array(pptot[i]).mean(), '+-', np.array(pptot[i]).std())

@@ -1,3 +1,20 @@
+Lab Exercise: Comparative Evaluation of NLTK Tagger and Spacy Tagger
+Train and evaluate NgramTagger
+
+experiment with different tagger parameters
+some of them have cut-off
+Evaluate spacy POS-tags on the same test set
+
+create mapping from spacy to NLTK POS-tags
+SPACY list https://universaldependencies.org/u/pos/index.html
+NLTK list https://github.com/slavpetrov/universal-pos-tags
+convert output to the required format (see format above)
+flatten into a list
+evaluate using accuracy from nltk.metrics
+link
+
+OUTPUTS:
+
 -------------------- Ngrams lvl 1
 Cutoff lvl 0
 NLTK 0.8608213982733669 | SPACY 0.8519387194969809

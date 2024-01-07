@@ -13,6 +13,19 @@ import numpy as np
 from nltk.lm import StupidBackoff
 
 def prepData(cutoff, tests):
+    """
+    Preprocesses the Shakespearean Macbeth dataset, applies a cutoff to create a vocabulary,
+    and prepares the test sentences.
+
+    Parameters:
+    cutoff (int): Cutoff threshold for vocabulary creation.
+    tests (list): List of test sentences.
+
+    Returns:
+    macbeth_sents_c (list): Processed Macbeth sentences with cutoff applied.
+    testsf (list): Processed test sentences with ofv applied.
+    lex: Vocabulary object.
+    """
     # Dataset in lowercase
     macbeth_sents = [[w.lower() for w in sent] for sent in gutenberg.sents('shakespeare-macbeth.txt')]
     macbeth_words=flatten(macbeth_sents)
@@ -25,6 +38,16 @@ def prepData(cutoff, tests):
     return macbeth_sents_c, testsf, lex
 
 def NLTKsbf(ngram, macbeth_sents_c):
+    """
+    Trains an N-gram language model using the Stupid Backoff method with NLTK.
+
+    Parameters:
+    ngram (int): Size of the N-grams.
+    macbeth_sents_c (list): Processed Macbeth sentences with cutoff applied.
+
+    Returns:
+    lm: Trained Stupid Backoff language model.
+    """
     #Get the ngrams
     macbeth_ngrams, flat_text = padded_everygram_pipeline(ngram, macbeth_sents_c)
     #Fit the model    
@@ -33,6 +56,13 @@ def NLTKsbf(ngram, macbeth_sents_c):
     return lm
 
 def testNLTKsbf(testsf, lm):
+    """
+    Tests the NLTK Stupid Backoff language model on the test sentences and prints entropy and perplexity.
+
+    Parameters:
+    testsf (list): Processed test sentences.
+    lm: Trained Stupid Backoff language model.
+    """
     #Calculate perplexity using cstm funct
     scores=[]
     for sent in testsf:
@@ -43,6 +73,17 @@ def testNLTKsbf(testsf, lm):
     print("Perplexity:", lm.perplexity(testsf))
     
 def CSTMsbf(ngram, macbeth_sents_c):
+    """
+    Trains a Stupid Backoff custom implementation.
+
+    Parameters:
+    ngram (int): Size of the N-grams.
+    macbeth_sents_c (list): Processed Macbeth sentences with cutoff applied.
+
+    Returns:
+    rep (list): List containing n-gram representations and their counts.
+    ng_list (list): List of N-grams.
+    """
     #Get the ngrams
     macbeth_ngrams, flat_text = padded_everygram_pipeline(ngram, macbeth_sents_c)
     macbeth_ngrams = chain.from_iterable(macbeth_ngrams)
@@ -75,47 +116,67 @@ def CSTMsbf(ngram, macbeth_sents_c):
     
     return rep, ng_list
 
- #Search the score of a given ngram
 def probSearch(ngram, text, rep, ng_list):
-     word = text
-     ogw = text
-     score=0
-     
-     #FIND TIMES NGRAM APPEARS
-     #Limit max size to max ngram size
-     if len(word) > ngram:
-         word = word[-ngram:]
-     for lvl in range(ngram-len(word),ngram): #start from the length of the test ngram
-         for nlvl1 in rep[lvl]:
-             if word == nlvl1['ngram']:
-                 score=(nlvl1)
-         if score != 0: #ngram was found
-             break
-         else:
-             word = word[1:] #remove one word and search again
-             if len(word) == 0: #in case the unigram was not found just break
-                 print(text, 'NOT FOUND P=0')
-                 return 1e-10
-     
-     #FIND TIMES CONTEXT APPEARS
-     counts=0
-     if len(score['ngram']) >1:        
-         lvl = ngram-len(score['ngram'])
-         for nlvl1 in rep[lvl]:
-             if score['ngram'][:-1] == nlvl1['ngram'][:-1]:
-                 counts+=nlvl1['score']
-         prob = score['score']/counts
-     else:
-         #Calculate the probability
-         prob = score['score']/len(ng_list[ngram-len(score['ngram'])])#len(rep[ngram-len(score['ngram'])])
-     
-     if len(ogw) > len(score['ngram']):
-         bkoff = len(ogw) - len(score['ngram'])
-         prob = prob*0.4**bkoff
-     
-     return prob
+    """
+    Searches for the score of a given n-gram in the custom Stupid Backoff language model.
+
+    Parameters:
+    ngram (int): Size of the n-gram.
+    text (tuple): N-gram to search for.
+    rep (list): List containing n-gram representations and their counts.
+    ng_list (list): List of N-grams.
+
+    Returns:
+    prob (float): Probability of the given n-gram.
+    """
+    word = text
+    ogw = text
+    score=0
+    
+    #FIND TIMES NGRAM APPEARS
+    #Limit max size to max ngram size
+    if len(word) > ngram:
+        word = word[-ngram:]
+    for lvl in range(ngram-len(word),ngram): #start from the length of the test ngram
+        for nlvl1 in rep[lvl]:
+            if word == nlvl1['ngram']:
+                score=(nlvl1)
+        if score != 0: #ngram was found
+            break
+        else:
+            word = word[1:] #remove one word and search again
+            if len(word) == 0: #in case the unigram was not found just break
+                print(text, 'NOT FOUND P=0')
+                return 1e-10
+    
+    #FIND TIMES CONTEXT APPEARS
+    counts=0
+    if len(score['ngram']) >1:        
+        lvl = ngram-len(score['ngram'])
+        for nlvl1 in rep[lvl]:
+            if score['ngram'][:-1] == nlvl1['ngram'][:-1]:
+                counts+=nlvl1['score']
+        prob = score['score']/counts
+    else:
+        #Calculate the probability
+        prob = score['score']/len(ng_list[ngram-len(score['ngram'])])#len(rep[ngram-len(score['ngram'])])
+    
+    if len(ogw) > len(score['ngram']):
+        bkoff = len(ogw) - len(score['ngram'])
+        prob = prob*0.4**bkoff
+    
+    return prob
     
 def testCSTMsbf(ngram,testsf,rep,ng_list):
+    """
+    Tests the custom Stupid Backoff language model on the given test sentences and prints entropy and perplexity.
+
+    Parameters:
+    ngram (int): Size of the N-grams.
+    testsf (list): Processed test sentences.
+    rep (list): List containing n-gram representations and their counts.
+    ng_list (list): List of N-grams.
+    """
     #Get the ngrams of the test sentences
     test_s, flat = padded_everygram_pipeline(ngram, testsf)
     test_s = chain.from_iterable(test_s)

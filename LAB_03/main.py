@@ -8,13 +8,19 @@ if __name__ == "__main__":
     #Configuration
     ngram=5 #Ngram level 
     cutoff=2 
+    # last sentence was used to test that both implementations dont get affected equally by OFV words
     tests = ["the king is dead", "the emperor is dead", "may the force be with you", "welcome to you", "how are you",  'wasd wasd wasd']
     tests = [sentence.split() for sentence in tests]
     ###########################################################################
+    #Get train  and test data
     macbeth_sents_c,testsf, lex = prepData(cutoff, tests)
+    #Train nltk sbof
     lm = NLTKsbf(ngram, macbeth_sents_c)
+    #Test it
     testNLTKsbf(testsf, lm)
+    #Train cstm sbof
     rep,ng_list = CSTMsbf(ngram, macbeth_sents_c)
+    #test is
     testCSTMsbf(ngram, testsf, rep,ng_list)
     ###########################################################################
 
