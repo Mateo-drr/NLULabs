@@ -13,51 +13,73 @@ if __name__ == "__main__":
     #Wrtite the code to load the datasets and to run your functions
     # Print the results
     
+    #PARAMS
     path='D:/Universidades/Trento/2S/NLU/dataset/ATIS/'
     device='cuda'
-    batch_size=64
+    torch.backends.cudnn.benchmark = True  
+    runs=5
+    batch_size=128
+    lr = 0.0001 # learning rate
+    clip = 5 # Clip the gradient    
+    n_epochs=50 
+    hid_size=768
     
-    train_raw, dev_raw, test_raw = preproc(path)
+    #get the data
+    train_raw, dev_raw, test_raw = preproc(path) #longest utter in tokens is 52, in words its 46. 
     
+    #Process it
     words, intents, slots = getLang(train_raw, dev_raw, test_raw)
     lang = Lang(words, intents, slots, cutoff=0)
     
+    #create the dataset
     train_ds = CustomDataset(train_raw, lang, tokenizer, 128)
     test_ds = CustomDataset(test_raw, lang, tokenizer, 128)
     dev_ds = CustomDataset(dev_raw, lang, tokenizer, 128)
     
+    #dataloaders
     train_dl = DataLoader(train_ds, batch_size=batch_size, collate_fn=collate_fn,shuffle=True)
-    test_dl = DataLoader(test_ds, batch_size=batch_size, collate_fn=collate_fn)
-    dev_dl = DataLoader(dev_ds, batch_size=batch_size, collate_fn=collate_fn)
+    test_dl = DataLoader(test_ds, batch_size=64, collate_fn=collate_fn)
+    dev_dl = DataLoader(dev_ds, batch_size=64, collate_fn=collate_fn)
     
-    lr = 0.0002 # learning rate
-    clip = 5 # Clip the gradient    
-    n_epochs=20 
-    patience=3
-    hid_size=768
+    #output sizes
     out_int=len(intents)
     out_slot=len(lang.slot2id)
-
-    model = BertCstm(bert, hid_size, out_slot, out_int)
-    model.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=lr)
-    criterion_slots = nn.CrossEntropyLoss(ignore_index=PAD_TOKEN)
-    criterion_intents = nn.CrossEntropyLoss()
     
-    slot_f1s, intent_acc = [], []
-    best_f1=0
-    for epoch in range(1,n_epochs+1):
-        model.train()
-        patience, best_f1 = train_loop(train_dl, train_ds, device, optimizer,
-                                       model,criterion_intents, criterion_slots,
-                                       epoch, n_epochs,lang,tokenizer,dev_dl,
-                                       patience,best_f1)
+    #store the results in these
+    slot_met, intent_met = [[],[],[]], [[],[],[]]
+    
+    #Train and test the model n times
+    for x in range(0, runs):
+        print('Run',x+1)
         
-        if patience <=0:
-            print('Patience limit reached!')
-            break
+        #model and train params
+        model = BertCstm(bert, hid_size, out_slot, out_int)
+        model.to(device)
+        optimizer = optim.Adam(model.parameters(), lr=lr)
+        criterion_slots = nn.CrossEntropyLoss(ignore_index=PAD_TOKEN)
+        criterion_intents = nn.CrossEntropyLoss()
+        best_f1=0
+        patience=10
 
-    model.eval()
-    slot_f1s, intent_acc = evalModel(model, test_dl, criterion_slots, criterion_intents, lang, slot_f1s, intent_acc, tokenizer)
+        for epoch in range(1,n_epochs+1):
+            #TRAINING
+            model.train()
+            patience, best_f1 = train_loop(train_dl, train_ds, device, optimizer,
+                                           model,criterion_intents, criterion_slots,
+                                           epoch, n_epochs,lang,tokenizer,dev_dl,
+                                           patience,best_f1) #also includes validation
+            
+            if patience <=0:
+                print('Patience limit reached!')
+                break
     
-    printRes(slot_f1s, intent_acc, 'Bert')
+        #TESTING
+        #load best model for testing
+        model = BertCstm(bert, hid_size, out_slot, out_int)
+        model.to(device)
+        model.load_state_dict(torch.load('best.pth', map_location=device))
+        model.eval()
+        slot_met, intent_met = evalModel(model, test_dl, criterion_slots, criterion_intents, lang, slot_met, intent_met, tokenizer) 
+    
+    #RESULTS
+    printRes(slot_met, intent_met, 'Bert')

@@ -2,6 +2,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class SubjModel(nn.Module):
+    """
+    PyTorch model for subjectivity classification using BERT.
+
+    Parameters:
+    - input_size (int): Size of the input features.
+    - hidden_size (int): Size of the hidden layer.
+    - output_size (int): Size of the output layer.
+    - bert (transformers.BertModel): BERT model 
+    """
     def __init__(self, input_size, hidden_size, output_size, bert):
         super(SubjModel, self).__init__()
         self.bert = bert

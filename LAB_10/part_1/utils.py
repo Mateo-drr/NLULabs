@@ -11,7 +11,14 @@ PAD_TOKEN = 0
 device='cuda'
 
 class IntentsAndSlots (data.Dataset):
-    # Mandatory methods are __init__, __len__ and __getitem__
+    """
+    Dataset class for intents and slots.
+
+    Args:
+    - dataset: List of dictionaries containing utterances, slots, and intents.
+    - lang: Language object containing word, intent, and slot mappings.
+    - unk: Unknown token.
+    """
     def __init__(self, dataset, lang, unk='unk'):
         self.utterances = []
         self.intents = []
@@ -56,17 +63,30 @@ class IntentsAndSlots (data.Dataset):
     
     
 def load_data(path):
-    '''
-        input: path/to/data
-        output: json 
-    '''
+    """
+    Load data from a JSON file.
+
+    Args:
+    - path: Path to the JSON file.
+
+    Returns:
+    - List of dictionaries containing utterances, slots, and intents.
+    """
     dataset = []
     with open(path) as f:
         dataset = json.loads(f.read())
     return dataset
 
 def preproc(path):
-    
+    """
+    Preprocess the data by stratifying based on intents.
+
+    Args:
+    - path: Path to the dataset.
+
+    Returns:
+    - Train, dev, and test datasets.
+    """
     tmp_train_raw = load_data(path+'train.json')
     test_raw = load_data(path+'test.json')
     # Firt we get the 10% of dataset, then we compute the percentage of these examples 
@@ -96,11 +116,18 @@ def preproc(path):
     train_raw = X_train
     dev_raw = X_dev
     
-    #y_test = [x['intent'] for x in test_raw]
-    
     return train_raw, dev_raw, test_raw
 
 class Lang():
+    """
+    Language class for word, intent, and slot mappings.
+
+    Args:
+    - words: List of words.
+    - intents: List of intents.
+    - slots: List of slots.
+    - cutoff: Frequency cutoff for words.
+    """
     def __init__(self, words, intents, slots, cutoff=0):
         self.word2id = self.w2id(words, cutoff=cutoff, unk=True)
         self.slot2id = self.lab2id(slots)
@@ -128,6 +155,17 @@ class Lang():
         return vocab
 
 def getLang(train_raw, dev_raw, test_raw):
+    """
+    Get language mappings from the dataset.
+
+    Args:
+    - train_raw: Training dataset.
+    - dev_raw: Development dataset.
+    - test_raw: Test dataset.
+
+    Returns:
+    - Lists of words, intents, and slots.
+    """
     words = sum([x['utterance'].split() for x in train_raw], []) # No set() since we want to compute 
                                                             # the cutoff
     corpus = train_raw + dev_raw + test_raw # We do not wat unk labels, 
@@ -137,6 +175,15 @@ def getLang(train_raw, dev_raw, test_raw):
     return words, intents, slots
 
 def collate_fn(data):
+    """
+    Collate function for padding sequences.
+
+    Args:
+    - data: List of samples.
+
+    Returns:
+    - Dictionary containing padded utterances, intents, slot labels, and slot lengths.
+    """
     def merge(sequences):
         '''
         merge from batch * sent_len to batch * max_len 

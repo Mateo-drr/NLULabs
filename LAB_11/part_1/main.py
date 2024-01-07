@@ -63,6 +63,9 @@ if __name__ == "__main__":
             if kfmetrics[-1]['loss'] < bestLoss:
                 bestLoss = kfmetrics[-1]['loss']
                 bestModel = copy.deepcopy(model)
+    
+    #save model
+    torch.save(bestModel, 'subjModel.pth')
                 
     #GET AVERAGE RESULTS
     res.append(printMetrics(kfmetrics, names[0]))

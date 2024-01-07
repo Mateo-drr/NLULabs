@@ -11,6 +11,14 @@ from nltk.corpus import subjectivity
 stpw = set(stopwords.words('english'))
 
 class CustomDataset(Dataset):
+    """
+    PyTorch Dataset class for subjectivity classification.
+
+    Parameters:
+    - data (list): List of dictionaries containing text and labels.
+    - tokenizer: Tokenizer for encoding text.
+    - max_len_bert (int): Maximum length for BERT tokenization.
+    """
 
     def __init__(self, data, tokenizer, max_len_bert):
         self.data = copy.deepcopy(data)
@@ -45,6 +53,15 @@ class CustomDataset(Dataset):
         }
 
 class CustomDataset2(Dataset):
+    """
+    Dataset for handling tokenization of long sentences.
+ 
+    Parameters:
+    - data (list): List of text data.
+    - tokenizer: Tokenizer for encoding text.
+    - max_len_bert (int): Maximum length for BERT tokenization.
+ 
+    """
     def __init__(self, data, tokenizer, max_len_bert):
         self.data = copy.deepcopy(data)
         self.tokenizer = tokenizer
@@ -91,6 +108,16 @@ class CustomDataset2(Dataset):
         return tkchunks
     
 def remStopwSubj(osents,ssents):
+    """
+    Remove stopwords from subjective and objective sentences.
+
+    Parameters:
+    - osents (list): List of objective sentences.
+    - ssents (list): List of subjective sentences.
+
+    Returns:
+    - sents (list): List of dictionaries containing filtered sentences and bin labels.
+    """
     sents=[] #1 = obj, 0 = sub
     for i in range(0,len(osents)):
         temp=[]
@@ -106,6 +133,15 @@ def remStopwSubj(osents,ssents):
     return sents
 
 def remStopwMov(words):
+    """
+    Remove stopwords from a list of words.
+
+    Parameters:
+    - words (list): List of words.
+
+    Returns:
+    - fwords (list): List of filtered words.
+    """
     fwords=[]
     for i in range(0,len(words)):
         ws = word_tokenize(words[i])
@@ -117,6 +153,19 @@ def remStopwMov(words):
     return fwords
 
 def prepDL(sents, train_indices, val_indices, tokenizer, batch_size):
+    """
+    Prepare PyTorch DataLoader for subjectivity classification.
+
+    Parameters:
+    - sents (list): List of dictionaries containing text and labels.
+    - train_indices (list): List of indices for the training set.
+    - val_indices (list): List of indices for the validation set.
+    - tokenizer: Tokenizer for encoding text.
+    - batch_size (int): Batch size for DataLoader.
+
+    Returns:
+    - train_ds, train_dl, valid_ds, valid_dl: Training and validation datasets and dataloaders.
+    """
     train_ds = [sents[i] for i in train_indices]
     train_ds = CustomDataset(train_ds, tokenizer, 128)
     valid_ds = [sents[i] for i in val_indices]
@@ -127,11 +176,29 @@ def prepDL(sents, train_indices, val_indices, tokenizer, batch_size):
     return train_ds,train_dl,valid_ds,valid_dl
 
 def prepDL2(docsents,i,tokenizer, batch_size):
+    """
+    Prepare PyTorch DataLoader for handling tokenization of long sentences.
+
+    Parameters:
+    - docsents (list): List of sentences.
+    - i (int): Index of the document.
+    - tokenizer: Tokenizer for encoding text.
+    - batch_size (int): Batch size for DataLoader.
+
+    Returns:
+    - dl: DataLoader for tokenization of long sentences.
+    """
     ds = CustomDataset2(docsents[i], tokenizer, 128)
     dl = DataLoader(ds,batch_size=1,shuffle=False,pin_memory=True)
     return dl
 
 def prepDSMov():
+    """
+    Prepare movie reviews data.
+
+    Returns:
+    - words, txtlbls, fwords, docsents: Lists of words, labels, filtered words, and tokenized sentences.
+    """
     #Prepare movies data
     documents = [(movie_reviews.words(file_id),category) for file_id in movie_reviews.fileids() for category in movie_reviews.categories(file_id)]
     #max len sentence 15097 characters -> Average Metrics:
@@ -154,6 +221,12 @@ def prepDSMov():
     return words, txtlbls, fwords, docsents
 
 def prepDSSubj():
+    """
+    Prepare data for subjectivity classification.
+
+    Returns:
+    - sents: List of dictionaries containing filtered sentences and labels.
+    """
     osents = [s for s in subjectivity.sents(categories='obj')] #max len 120
     ssents = [s for s in subjectivity.sents(categories='subj')] #max len 55
 

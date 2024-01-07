@@ -11,7 +11,17 @@ from tqdm import tqdm
 import torch
 
 def runSvm(data,txtlbls,numsp):
-    
+    """
+    Train and evaluate an SVM classifier using TF-IDF features.
+
+    Parameters:
+    - data (list): List of text data.
+    - txtlbls (list): List of string labels corresponding to the text data.
+    - numsp (int): Number of splits for stratified k-fold cross-validation.
+
+    Returns:
+    - kfmetrics2 (list): List of dictionaries containing evaluation metrics for each fold.
+    """
     # Convert string labels to binary
     label_encoder = LabelEncoder()
     lbls = label_encoder.fit_transform(txtlbls)
@@ -50,6 +60,18 @@ def runSvm(data,txtlbls,numsp):
     return kfmetrics2 
     
 def trainLoop(train_dl,train_ds,model,optimizer,criterion,epoch,device):
+    """
+    Training loop 
+
+    Parameters:
+    - train_dl: Training data loader.
+    - train_ds: Training dataset.
+    - model: PyTorch model.
+    - optimizer: PyTorch optimizer.
+    - criterion: Loss criterion.
+    - epoch (int): Current epoch.
+    - device: Device to move the data and model to (e.g., 'cuda' or 'cpu').
+    """
     train_loss=0
     model.train()
     for _,data in tqdm(enumerate(train_dl), total=int(len(train_ds)/train_dl.batch_size)):
@@ -69,6 +91,21 @@ def trainLoop(train_dl,train_ds,model,optimizer,criterion,epoch,device):
     #print(lbl[0].to('cpu').detach().numpy()[0],out.to('cpu').detach().numpy()[0][0])
     
 def validLoop(valid_dl,valid_ds,model,criterion,epoch,device,kfmetrics):
+    """
+    Validation loop
+
+    Parameters:
+    - valid_dl: Validation data loader.
+    - valid_ds: Validation dataset.
+    - model: PyTorch model.
+    - criterion: Loss criterion.
+    - epoch (int): Current epoch.
+    - device: Device to move the data and model to (e.g., 'cuda' or 'cpu').
+    - kfmetrics (list): List to store evaluation metrics.
+
+    Returns:
+    - kfmetrics (list): Updated list of dictionaries containing evaluation metrics for each fold.
+    """
     oglbl,predlbl=[],[]
     model.eval()
     valid_loss=0
@@ -98,6 +135,16 @@ def validLoop(valid_dl,valid_ds,model,criterion,epoch,device,kfmetrics):
     return kfmetrics
 
 def printMetrics(kfmetrics, name):
+    """
+    Print and return average evaluation metrics.
+ 
+    Parameters:
+    - kfmetrics (list): List of dictionaries containing evaluation metrics for each fold.
+    - name (str): Name of the model.
+ 
+    Returns:
+    - avg_metrics (dict): Dictionary of average evaluation metrics.
+    """
     avg_metrics = {
         'accuracy': np.mean([fold['accuracy'] for fold in kfmetrics]),
         'precision': np.mean([fold['precision'] for fold in kfmetrics]),
@@ -110,6 +157,21 @@ def printMetrics(kfmetrics, name):
     return avg_metrics
     
 def removeObjSents(dl,model,docsents,device,i,fsents,window):
+    """
+    Remove objective sentences from a document using the model
+
+    Parameters:
+    - dl: Data loader for the model.
+    - model: PyTorch model for objective sentence detection.
+    - docsents (list): List of document sentences.
+    - device: Device to move the data and model to (e.g., 'cuda' or 'cpu').
+    - i (int): Index of the document.
+    - fsents (list): List to store filtered sentences.
+    - window (float): Threshold window for subjective sentences.
+
+    Returns:
+    - fsents (list): Updated list of filtered sentences.
+    """
     model.eval()
     with torch.no_grad():
         ftemp=[]

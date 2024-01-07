@@ -6,40 +6,43 @@ from conllm import evaluate
 from sklearn.metrics import classification_report
 import numpy as np
 from tqdm import tqdm
-
-def init_weights(mat):
-    for m in mat.modules():
-        if type(m) in [nn.GRU, nn.LSTM, nn.RNN]:
-            for name, param in m.named_parameters():
-                if 'weight_ih' in name:
-                    for idx in range(4):
-                        mul = param.shape[0]//4
-                        torch.nn.init.xavier_uniform_(param[idx*mul:(idx+1)*mul])
-                elif 'weight_hh' in name:
-                    for idx in range(4):
-                        mul = param.shape[0]//4
-                        torch.nn.init.orthogonal_(param[idx*mul:(idx+1)*mul])
-                elif 'bias' in name:
-                    param.data.fill_(0)
-        else:
-            if type(m) in [nn.Linear]:
-                torch.nn.init.uniform_(m.weight, -0.01, 0.01)
-                if m.bias != None:
-                    m.bias.data.fill_(0.01)
                     
 def train_loop(train_dl,train_ds,device,optimizer,model,criterion_intents,
                criterion_slots,epoch,n_epochs,lang,tokenizer,dev_dl,patience,
                best_f1):
+    """
+    Training loop for the model.
+
+    Args:
+    - train_dl: Training data loader.
+    - train_ds: Training dataset.
+    - device: Device on which to train the model.
+    - optimizer: Model optimizer.
+    - model: The model to be trained.
+    - criterion_intents: Criterion for intent classification.
+    - criterion_slots: Criterion for slot classification.
+    - epoch: Current epoch number.
+    - n_epochs: Total number of epochs.
+    - lang: Vocabulary and label mappings (output of Lang() class).
+    - tokenizer: Tokenizer for text data.
+    - dev_dl: Development data loader for evaluation.
+    - patience: Patience parameter for early stopping.
+    - best_f1: Best F1 score achieved so far.
+
+    Returns:
+    updated patience and best F1 score.
+    """
     total_loss=0
     for _, data in tqdm(enumerate(train_dl), total=int(len(train_ds)/train_dl.batch_size)):
         
         utt = data['utterances'].to(device)
+        attm = data['text_attention_mask']#.to(device)
         slot = data['y_slots'].to(device)
         intent = data['intents'].to(device)
     
         optimizer.zero_grad()
     
-        predS, predI = model(utt)
+        predS, predI = model(utt,attm)
         
         lossS = criterion_slots(predS, slot)
         lossI = criterion_intents(predI, intent)
@@ -57,10 +60,12 @@ def train_loop(train_dl,train_ds,device,optimizer,model,criterion_intents,
     
     f1 = results['total']['f']
     #PATIENCE CODE
-    if epoch%2==0:
+    if True:#epoch%2==0:
         
-        if f1 > best_f1:
-            best_f1 = f1
+        if f1/total_loss > best_f1 and f1 > 0.90: #just to avoid entering here in the first epochs
+            best_f1 = f1/total_loss
+            torch.save(model.state_dict(), f'best.pth')
+            print('Best E',epoch)
         else:
             patience-=1
             
@@ -68,15 +73,21 @@ def train_loop(train_dl,train_ds,device,optimizer,model,criterion_intents,
             
     return patience,best_f1
 
-def evalModel(model, test_loader, criterion_slots, criterion_intents,lang,
-              slot_f1s,intent_acc, tokenizer):
-    results_test, intent_test, _ = eval_loop(test_loader, criterion_slots, 
-                                             criterion_intents, model, lang, tokenizer)
-    intent_acc.append(intent_test['accuracy'])
-    slot_f1s.append(results_test['total']['f'])
-    return slot_f1s, intent_acc
-
 def eval_loop(data, criterion_slots, criterion_intents, model, lang, tokenizer):
+    """
+    Evaluation loop for the model.
+
+    Args:
+    - data: Evaluation data.
+    - criterion_slots: Criterion for slot classification.
+    - criterion_intents: Criterion for intent classification.
+    - model: The model to be evaluated.
+    - lang: Vocabulary and label mappings (output of Lang() class).
+    - tokenizer: Tokenizer for text data.
+
+    Returns:
+    Tuple containing evaluation results, intent classification report, and loss array.
+    """
     model.eval()
     loss_array = []
     
@@ -85,10 +96,11 @@ def eval_loop(data, criterion_slots, criterion_intents, model, lang, tokenizer):
     
     ref_slots = []
     hyp_slots = []
-    #softmax = nn.Softmax(dim=1) # Use Softmax if you need the actual probability
-    with torch.no_grad(): # It used to avoid the creation of computational graph
+
+    with torch.no_grad(): 
         for sample in data:
-            slots, intents = model(sample['utterances'])
+            attm = sample['text_attention_mask']
+            slots, intents = model(sample['utterances'], attm)
             loss_intent = criterion_intents(intents, sample['intents'])
             loss_slot = criterion_slots(slots, sample['y_slots'])
             loss = loss_intent + loss_slot 
@@ -136,9 +148,53 @@ def eval_loop(data, criterion_slots, criterion_intents, model, lang, tokenizer):
     return results, report_intent, loss_array
 
 
-def printRes(slot_f1s, intent_acc, name):
-    slot_f1s = np.asarray(slot_f1s)
-    intent_acc = np.asarray(intent_acc)
+
+def evalModel(model, test_loader, criterion_slots, criterion_intents,lang,
+              sltm,intm,tokenizer):
+    """
+    Evaluate the model on a test set.
+
+    Args:
+    - model: The model to be evaluated.
+    - test_loader: Test data loader.
+    - criterion_slots: Criterion for slot classification.
+    - criterion_intents: Criterion for intent classification.
+    - lang: Vocabulary and label mappings (output of Lang() class).
+    - sltm: List to store slot-related metrics.
+    - intm: List to store intent-related metrics.
+    - tokenizer: Tokenizer for text data.
+
+    Returns:
+    Tuple containing updated slot-related metrics and intent-related metrics.
+    """
+    res_slt, res_int, _  = eval_loop(test_loader, criterion_slots, 
+                                             criterion_intents, model, lang,tokenizer)
+
+    sltm[0].append(res_slt['total']['f'])
+    sltm[1].append(res_slt['total']['p'])
+    sltm[2].append(res_slt['total']['r'])
+    intm[0].append(res_int['weighted avg']['f1-score'])
+    intm[1].append(res_int['weighted avg']['precision'])
+    intm[2].append(res_int['weighted avg']['recall'])
+
+    return sltm, intm
+
+def printRes(sltm, intm, name):
+    """
+    Print evaluation results.
+
+    Args:
+    - sltm: Slot-related metrics.
+    - intm: Intent-related metrics.
+    - name: Name of the evaluation set.
+
+    Returns:
+    None
+    """
     print('\n', name)
-    print('Slot F1', round(slot_f1s.mean(),3), '+-', round(slot_f1s.std(),3))
-    print('Intent Acc', round(intent_acc.mean(), 3), '+-', round(slot_f1s.std(), 3))
+    n = ['F1','Precision','Recall']
+    for i in range(0,3):
+        smet = np.array(sltm[i])
+        imet = np.array(intm[i])
+        print(n[i]+':', 'S:', round(smet.mean(),4),'+-', round(smet.std(),4),
+              'I:', round(imet.mean(),4),'+-', round(imet.std(),4))
