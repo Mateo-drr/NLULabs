@@ -9,9 +9,10 @@ from collections import Counter
 from torch.utils.data import Dataset
 import copy
 import torch.nn.functional as F
+import re
 
 PAD_TOKEN = 0
-device='cuda'
+device="cuda" if torch.cuda.is_available() else "cpu"
 
     
     
@@ -138,14 +139,12 @@ class CustomDataset(Dataset):
     - mapping_seq: Map sequences to indices.
     """
 
-    def __init__(self, data, lang, tokenizer, max_len_bert):
+    def __init__(self, data, lang, tokenizer):
         #WHAT DO WE PUT HERE?
         #copy the data
         self.data = copy.deepcopy(data)
         #load the given tokenizer
         self.tokenizer = tokenizer
-        #load the maximum length of the input
-        self.max_len_bert = max_len_bert
         
         self.intents = []
         self.slots = []
@@ -168,32 +167,43 @@ class CustomDataset(Dataset):
         slots = torch.Tensor(self.slot_ids[idx])
         intent = self.intent_ids[idx]
         
-        encoding_text = self.tokenizer.encode_plus(
-            utt,
-            max_length=self.max_len_bert,
-            add_special_tokens=True,
-            #padding='max_length',
-            return_attention_mask=True,
-            return_token_type_ids=False,
-            return_tensors='pt',
-            truncation=True
-        )
+        #fix o'clocl to clock
+        utt = re.sub(r"(\w+)'(\w)", r"\1\2", utt)
+        #utt = utt.replace("o'clock", 'clock')
         
-        pad=encoding_text['input_ids'].flatten().size()[0]- slots.size()[0]
-        if pad != 0:    
-            slots = F.pad(slots, (0, pad), value=0)
-            
+        #Tokenizer splits ' and . 
+        txt = utt.split(' ')
+        for i in range(0,len(txt)):
+            if txt[i].endswith('.'):
+                txt[i] = txt[i][:-1]
+        utt = ' '.join(txt)
+        #tokens = []
         
-        #decode =  self.tokenizer.convert_ids_to_tokens(encoding_text['input_ids'].flatten())
-        #print(decode)
+        joint = self.tokenizer.encode(utt)
+        tkns = self.tokenizer.convert_ids_to_tokens(joint)
+        
+        split = []
+        for i,t in enumerate(tkns):
+            if not t.startswith('##') and not t.startswith("'"):     
+                split.append(t)
+                
+        split = self.tokenizer.convert_tokens_to_ids(split)
+
+        split = torch.tensor(split)
+        slots = torch.cat([torch.tensor([PAD_TOKEN]),slots,torch.tensor([PAD_TOKEN])]) #pad slot
+        
+        #just in case code fails
+        if len(split) != len(slots):
+            print('ERROR', split, slots, utt)
+
         return {
             'utt': utt,
             #'decoded': decode,
-            'utterance': encoding_text['input_ids'].flatten(),
-            'text_attention_mask': encoding_text['attention_mask'].flatten(),
+            'utterance': split, #encoding_text['input_ids'].flatten(),
+            'text_attention_mask': torch.ones_like(split),#encoding_text['attention_mask'].flatten(),
             'slots': slots,
             'intent': intent,
-            'pad':pad
+            'pad':0
         }
 
     def mapping_lab(self, data, mapper):

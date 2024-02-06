@@ -13,14 +13,13 @@ if __name__ == "__main__":
 
     #PARAMS
     path='D:/Universidades/Trento/2S/NLU/dataset/ATIS/'
-    device='cuda'
+    device="cuda" if torch.cuda.is_available() else "cpu"
     hid_size = 200
     emb_size = 300
-    lr = 0.0001 # learning rate
     clip = 5 # Clip the gradient
     runs = 5
     n_epochs = 200
-    patience = 3   
+    patience = 7   
     
     #get the data
     train_raw, dev_raw, test_raw = preproc(path)
@@ -47,6 +46,7 @@ if __name__ == "__main__":
     
     #to save the results
     slot_met, intent_met = [[],[],[]], [[],[],[]]
+    lr = 0.001 # learning rate
     
     #train various runs
     for x in tqdm(range(0, runs)):
@@ -74,6 +74,7 @@ if __name__ == "__main__":
     
     #to save the results
     slot_met, intent_met = [[],[],[]], [[],[],[]]
+    lr = 0.001 # learning rate
     
     #train various runs
     for x in tqdm(range(0, runs)):
@@ -101,6 +102,7 @@ if __name__ == "__main__":
     
     #to save the results
     slot_met, intent_met = [[],[],[]], [[],[],[]]
+    lr = 0.005 # learning rate
     
     #train various runs
     for x in tqdm(range(0, runs)):

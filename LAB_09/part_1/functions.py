@@ -158,7 +158,8 @@ def analogy_our_model(w1, w2, w3, model, lang):
         print(lang.id2word[key], ms[1][i])
         
         
-def runModel(n_epochs, optimizer, criterion_train, criterion_eval, model, clip, dev_loader,train_loader,test_loader,lang, device):
+def runModel(n_epochs, optimizer, criterion_train, criterion_eval, model, clip,
+             dev_loader,train_loader,test_loader,lang, device, patience):
     """
     Train the model, evaluate on the development set, and return the best model based on perplexity.
 
@@ -183,6 +184,7 @@ def runModel(n_epochs, optimizer, criterion_train, criterion_eval, model, clip, 
     sampled_epochs = []
     best_ppl = math.inf
     best_model = None
+    pat = copy.deepcopy(patience)
     pbar = tqdm(range(1,n_epochs))
     for epoch in pbar:
         loss = train_loop(train_loader, optimizer, criterion_train, model, clip)    
@@ -196,11 +198,11 @@ def runModel(n_epochs, optimizer, criterion_train, criterion_eval, model, clip, 
             if  ppl_dev < best_ppl: # the lower, the better
                 best_ppl = ppl_dev
                 best_model = copy.deepcopy(model).to('cpu')
-                patience = 3
+                pat = patience
             else:
-                patience -= 1
+                pat -= 1
                 
-            if patience <= 0: # Early stopping with patience
+            if pat <= 0: # Early stopping with patience
                 break # Not nice but it keeps the code clean
                               
     return best_model

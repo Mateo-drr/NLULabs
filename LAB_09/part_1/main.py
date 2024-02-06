@@ -22,15 +22,19 @@ if __name__ == "__main__":
     #spacy.cli.download("en_core_web_lg")
     
     #PARAMS
-    device = 'cuda' #change also in utils
+    device="cuda" if torch.cuda.is_available() else "cpu"
     path='D:/Universidades/Trento/2S/NLU/dataset/'
-    hid_size = 256
+    bpath='D:/Universidades/Trento/2S/NLU/LAB_09/part_1/bin/' 
+    hid_size = 128+256
     emb_size = 256
     clip = 5 # Clip the gradient
-    n_epochs = 100
-    patience = 3
+    n_epochs = 50
+    patience = 7
     runs=5
+    save=True
     torch.backends.cudnn.benchmark = True 
+    torch.set_num_threads(8)
+    torch.set_num_interop_threads(8)
     
     #LOAD THE DATA
     train_raw = read_file(path+"ptb.train.txt")
@@ -47,8 +51,7 @@ if __name__ == "__main__":
     vocab = get_vocab(train_raw, ["<pad>", "<eos>"])
     
     #DATALOADERS
-    train_loader = DataLoader(train_dataset, batch_size=32, collate_fn=partial(collate_fn, pad_token=lang.word2id["<pad>"]),
-                              shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=16, collate_fn=partial(collate_fn, pad_token=lang.word2id["<pad>"]),shuffle=True)
     dev_loader = DataLoader(dev_dataset, batch_size=512, collate_fn=partial(collate_fn, pad_token=lang.word2id["<pad>"]))
     test_loader = DataLoader(test_dataset, batch_size=512, collate_fn=partial(collate_fn, pad_token=lang.word2id["<pad>"]))
 
@@ -62,7 +65,7 @@ if __name__ == "__main__":
     
     ###########################################################################
     #RNN w SGD
-    lr = 0.05
+    lr = 0.3
     restemp=[]
     for r in range(0,runs):
         print('Run', r+1)
@@ -75,18 +78,26 @@ if __name__ == "__main__":
             
         #TRAIN AND TEST MODEL
         best_model = runModel(n_epochs, optimizer, criterion_train, criterion_eval,
-                 model, clip, dev_loader, train_loader, test_loader, lang, device)
+                 model, clip, dev_loader, train_loader, test_loader, lang, device,
+                 patience)
         res = testModel(best_model,device, test_loader, criterion_eval, lang)
         
         restemp.append(res)
+        if save and res <= max(restemp):
+            topModel = copy.deepcopy(best_model)
+            
+        torch.cuda.empty_cache()
+        
     #save model
-    torch.save(best_model, 'RNN.pth')
+    if save:
+        torch.save(topModel.state_dict(), bpath+'RNN.pth')
+        
     pptot.append(restemp)
     gc.collect()
-    torch.cuda.empty_cache()
+    
     ###########################################################################
     #LSTM w SGD
-    lr = 0.05
+    lr = 0.8
     restemp=[]
     for r in range(0,runs):
         print('Run', r+1)
@@ -100,24 +111,32 @@ if __name__ == "__main__":
             
         #TRAIN AND TEST MODEL
         best_model = runModel(n_epochs, optimizer, criterion_train, criterion_eval,
-                 model, clip, dev_loader, train_loader, test_loader, lang, device)
+                 model, clip, dev_loader, train_loader, test_loader, lang, device,
+                 patience)
         res = testModel(best_model,device, test_loader, criterion_eval, lang)
         
         restemp.append(res)
+        if save and res <= max(restemp):
+            topModel = copy.deepcopy(best_model)
+            
+        torch.cuda.empty_cache()
+        
     #save model
-    torch.save(best_model, 'LSTM.pth')
+    if save:
+        torch.save(topModel.state_dict(), bpath+'LSTM.pth')
+        
     pptot.append(restemp)
     gc.collect()
-    torch.cuda.empty_cache()
+    
     ###########################################################################
     #LSTM w SGD + DROPOUT
-    lr = 0.05
+    lr = 0.85
     restemp=[]
     for r in range(0,runs):
         print('Run', r+1)
         #INIT MODEL
         model = LM_LSTM(emb_size, hid_size, vocab_len, pad_index=lang.word2id["<pad>"],
-                        emb_dropout=0.1, out_dropout=0.1).to(device)    
+                        emb_dropout=0.2, out_dropout=0.2).to(device)    
         model.apply(init_weights)
         
         #OPTIMIZER
@@ -125,24 +144,32 @@ if __name__ == "__main__":
             
         #TRAIN AND TEST MODEL
         best_model = runModel(n_epochs, optimizer, criterion_train, criterion_eval,
-                 model, clip, dev_loader, train_loader, test_loader, lang, device)
+                 model, clip, dev_loader, train_loader, test_loader, lang, device,
+                 patience)
         res = testModel(best_model,device, test_loader, criterion_eval, lang)
         
         restemp.append(res)
+        if save and res <= max(restemp):
+            topModel = copy.deepcopy(best_model)
+        
+        torch.cuda.empty_cache()
+        
     #save model
-    torch.save(best_model, 'LSTMd.pth')
+    if save:
+        torch.save(topModel.state_dict(), bpath+'LSTMd.pth')
+        
     pptot.append(restemp)
     gc.collect()
-    torch.cuda.empty_cache()
+    
     ###########################################################################
     #LSTM w AdamW + DROPOUT
-    lr = 0.0001
+    lr = 0.001
     restemp=[]
     for r in range(0,runs):
         print('Run', r+1)
         #INIT MODEL
         model = LM_LSTM(emb_size, hid_size, vocab_len, pad_index=lang.word2id["<pad>"],
-                        emb_dropout=0.1, out_dropout=0.1).to(device)    
+                        emb_dropout=0.2, out_dropout=0.2).to(device)    
         model.apply(init_weights)
         
         #OPTIMIZER
@@ -150,15 +177,23 @@ if __name__ == "__main__":
             
         #TRAIN AND TEST MODEL
         best_model = runModel(n_epochs, optimizer, criterion_train, criterion_eval,
-                 model, clip, dev_loader, train_loader, test_loader, lang, device)
+                 model, clip, dev_loader, train_loader, test_loader, lang, device,
+                 patience)
         res = testModel(best_model,device, test_loader, criterion_eval, lang)
         
         restemp.append(res)
+        if save and res <= max(restemp):
+            topModel = copy.deepcopy(best_model)
+            
+        torch.cuda.empty_cache()
+            
     #save model
-    torch.save(best_model, 'LSTMdAW.pth')
+    if save:
+        torch.save(topModel.state_dict(), bpath+'LSTMdAW.pth')
+        
     pptot.append(restemp)
     gc.collect()
-    torch.cuda.empty_cache()
+    
     ###########################################################################
 
     printRes(pptot)

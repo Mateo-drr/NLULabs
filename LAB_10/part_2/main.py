@@ -15,14 +15,17 @@ if __name__ == "__main__":
     
     #PARAMS
     path='D:/Universidades/Trento/2S/NLU/dataset/ATIS/'
-    device='cuda'
+    device="cuda" if torch.cuda.is_available() else "cpu"
     torch.backends.cudnn.benchmark = True  
     runs=5
     batch_size=128
     lr = 0.0001 # learning rate
     clip = 5 # Clip the gradient    
-    n_epochs=50 
+    n_epochs=50
     hid_size=768
+    pat = 7
+    torch.set_num_threads(8)
+    torch.set_num_interop_threads(8)
     
     #get the data
     train_raw, dev_raw, test_raw = preproc(path) #longest utter in tokens is 52, in words its 46. 
@@ -32,12 +35,12 @@ if __name__ == "__main__":
     lang = Lang(words, intents, slots, cutoff=0)
     
     #create the dataset
-    train_ds = CustomDataset(train_raw, lang, tokenizer, 128)
-    test_ds = CustomDataset(test_raw, lang, tokenizer, 128)
-    dev_ds = CustomDataset(dev_raw, lang, tokenizer, 128)
+    train_ds = CustomDataset(train_raw, lang, tokenizer)
+    test_ds = CustomDataset(test_raw, lang, tokenizer)
+    dev_ds = CustomDataset(dev_raw, lang, tokenizer)
     
     #dataloaders
-    train_dl = DataLoader(train_ds, batch_size=batch_size, collate_fn=collate_fn,shuffle=True)
+    train_dl = DataLoader(train_ds, batch_size=batch_size, collate_fn=collate_fn,shuffle=False)
     test_dl = DataLoader(test_ds, batch_size=64, collate_fn=collate_fn)
     dev_dl = DataLoader(dev_ds, batch_size=64, collate_fn=collate_fn)
     
@@ -59,7 +62,7 @@ if __name__ == "__main__":
         criterion_slots = nn.CrossEntropyLoss(ignore_index=PAD_TOKEN)
         criterion_intents = nn.CrossEntropyLoss()
         best_f1=0
-        patience=10
+        patience=pat
 
         for epoch in range(1,n_epochs+1):
             #TRAINING
@@ -67,7 +70,7 @@ if __name__ == "__main__":
             patience, best_f1 = train_loop(train_dl, train_ds, device, optimizer,
                                            model,criterion_intents, criterion_slots,
                                            epoch, n_epochs,lang,tokenizer,dev_dl,
-                                           patience,best_f1) #also includes validation
+                                           patience,best_f1,pat) #also includes validation
             
             if patience <=0:
                 print('Patience limit reached!')

@@ -284,7 +284,7 @@ def leskEval(data,option):
         if option==1:
             hyp = original_lesk(txt, txt[inst.position], synsets=synsets, majority=True).name()
         else:
-            hyp = lesk_similarity(txt, txt[inst.position], synsets=synsets, majority=True).name()
+            hyp = lesk_similarity(txt, txt[inst.position], synsets=synsets, similarity='jiang', majority=True).name() #works better than resnik
         ref = mapping.get(raw_ref)
         
         # for precision, recall, f-measure        

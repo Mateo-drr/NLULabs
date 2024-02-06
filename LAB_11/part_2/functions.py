@@ -4,149 +4,9 @@ import copy
 from sklearn.metrics import precision_score, recall_score, f1_score
 from itertools import chain
 import numpy as np
+from utils import pol2idx,idx2pol
 
-def metricsAll(pred, targ):
-    """
-    Calculate precision, recall, and F1-score for aspect and polarity predictions combined.
-
-    Args:
-        pred (list): List of predicted values.
-        targ (list): List of target (ground truth) values.
-
-    Returns:
-        dict: Dictionary containing precision, recall, and F1-score.
-    """
-    predf = list(chain.from_iterable(list(chain.from_iterable(pred))))
-    targf = list(chain.from_iterable(list(chain.from_iterable(targ))))
-
-    # Calculate precision, recall, and F1-score
-    precision = precision_score(targf, predf, average='macro',zero_division=0)
-    recall = recall_score(targf, predf, average='macro',zero_division=0)
-    f1 = f1_score(targf, predf, average='macro',zero_division=0)
-
-    allmetrics = {
-        'Precision': precision,
-        'Recall': recall,
-        'F1-score': f1,
-    }
-
-    print('\nJoint Metrics:',
-          'Precision:', round(precision, 6),
-          'Recall:', round(recall, 6),
-          'F1-score:', round(f1, 6)
-          )
-    return allmetrics
-
-def extractAspPol(test_ds, aspect_positions, polarity, idx2pol, tokenizer):
-    """
-    Formatting of the model output data and the ground truth values.
-
-    Args:
-        test_ds (Dataset): Test dataset.
-        aspect_positions (torch.Tensor): Tensor containing predicted aspect positions.
-        polarity (torch.Tensor): Tensor containing predicted polarity values.
-        idx2pol (dict): Dictionary mapping polarity indices to strings.
-        tokenizer: Tokenizer used for encoding aspects.
-
-    Returns:
-        dict: Dictionary containing aspect and polarity for evaluation.
-    """
-    
-    aspect_positions = torch.round(aspect_positions).to(torch.int).cpu()
-    polarity = torch.round(polarity).to(torch.int).cpu()
-    
-    predAspectsS = [[] for _ in range(len(test_ds))]
-    predAspectsT = [[] for _ in range(len(test_ds))]
-    targAspectsS = [[] for _ in range(len(test_ds))]
-    targAspectsT = [[] for _ in range(len(test_ds))]
-    
-    predPolarityS = [[] for _ in range(len(test_ds))]
-    predPolarityT = [[] for _ in range(len(test_ds))]
-    targPolarityS = [[] for _ in range(len(test_ds))]
-    targPolarityT = [[] for _ in range(len(test_ds))]
-    
-    allPred = [[] for _ in range(len(test_ds))]
-    allTarg = [[] for _ in range(len(test_ds))]
-    
-    for i in range(len(test_ds)):
-        for j in range(0,aspect_positions[i].shape[0]):
-            
-            #PREDICTIONS
-            start, end = aspect_positions[i][j]
-            # Exclude positions where both start and end are zero (padding)
-            # and if the prediction is illogical
-            if (start != 0 or end != 0) and start <= end:
-                
-                # Extract the aspect from the sentence based on the predicted positions
-                aspect = test_ds[i]['s'].split(" ")[start-1:end]
-                aspect = ' '.join(aspect)
-                predAspectsS[i].append(aspect)
-                # Get the tokenized version
-                aspect = tokenizer.encode(aspect)
-                predAspectsT[i].append(aspect)
-                
-                #Get combined data to evaluate, just take it if an aspect was predicted
-                allPred[i].append([start.item(), end.item(), polarity[i][j].item()])
-                
-            #Get the polarity in string
-            polar = polarity[i][j]
-            predPolarityS[i].append(idx2pol[polar.item()])
-            
-            #Get the polarity in idx
-            predPolarityT[i].append(polar)
-                
-                
-            #GROUND TRUTH
-            start,end= test_ds[i]['asp'][j] #get the correct positions
-            if start != 0 or end != 0:    
-                
-                # Extract the aspect from the sentence based on the positions
-                aspect = test_ds[i]['s'].split(" ")[start-1:end]
-                aspect = ' '.join(aspect)
-                targAspectsS[i].append(aspect)
-                
-                # Get the tokenized version
-                aspect = tokenizer.encode(aspect)
-                targAspectsT[i].append(aspect)
-                
-                #Get combined data to evaluate, just take it if an aspect was predicted
-                allTarg[i].append([start.item(), end.item(), polarity[i][j].item()])
-                
-            #Get the polarity in string
-            polar = test_ds[i]['pol'][j]
-            targPolarityS[i].append(idx2pol[polar.item()])
-            
-            #Get the polarity in idx
-            targPolarityT[i].append(polar)
-            
-            
-        
-        #Remove duplicates
-        clean = []
-        for p in allPred[i]:
-            if p not in clean:
-                clean.append(p)
-        
-        allPred[i] = clean
-        
-        # Pad predictions and targets to allow comparison
-        max_len = max(len(allPred[i]), len(allTarg[i]))
-        allPred[i] = allPred[i] + [[0, 0, 0]] * (max_len - len(allPred[i]))
-        allTarg[i] = allTarg[i] + [[0, 0, 0]] * (max_len - len(allTarg[i]))
-
-    return {'aspP':predAspectsS,
-            'aspPt':predAspectsT,
-            'aspT':targAspectsS,
-            'aspTt':targAspectsT,
-            'polP':predPolarityS,
-            'polPt':predPolarityT,
-            'polT':targPolarityS,
-            'polTt':targPolarityT,
-            'allP':allPred,
-            'allT':allTarg
-            }
-
-def trainLoop(model,train_ds,train_dl,device,optimizer,critAsp,critPol,clip):
+def trainLoop(model,train_ds,train_dl,device,optimizer,critAsp,clip):
     """
     Training loop for the model.
 
@@ -157,7 +17,6 @@ def trainLoop(model,train_ds,train_dl,device,optimizer,critAsp,critPol,clip):
         device: Device on which to perform training.
         optimizer: Model optimizer.
         critAsp: Aspect loss criterion.
-        critPol: Polarity loss criterion.
         clip (float): Gradient clipping value.
 
     Returns:
@@ -168,34 +27,52 @@ def trainLoop(model,train_ds,train_dl,device,optimizer,critAsp,critPol,clip):
     tloss = 0
     model.train()
     for _,data in tqdm(enumerate(train_dl), total=int(len(train_ds)/train_dl.batch_size)):
-        lbl = data['pol'].to(device)
-        lblA = data['asp'].to(device)#['asp_enc'].to(device)#.to(torch.float32)
-        text = data['text_input_ids'].to(device)
-        att = data['text_attention_mask'].to(device)
-        
+        utt = data['utterances'].to(device)
+        attm = data['text_attention_mask']
+        asp = data['y_lbl'].to(device)
+
         optimizer.zero_grad()
-        asp,pol = model(text,att)
         
-        loss1 = critAsp(asp,lblA)
-        lossA += loss1.item()
+        predS = model(utt,attm)
         
-        loss2 = critPol(pol,lbl)
-        lossP += loss2.item()
+        lossS = critAsp(predS, asp)
         
-        loss= loss1+loss2
+        # Backpropagation and optimization
+        loss = lossS
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), clip)  
         optimizer.step()
         
-        tloss +=loss.item()
+        tloss += loss.item()
         
     print('Train',
           'L',round(tloss/len(train_ds),6),
-          'Asp-L',round(lossA/len(train_ds),6),
-          'Pol-L',round(lossP/len(train_ds),6)
           )
     
-def evalLoop(model,valid_ds,valid_dl,device,critAsp,critPol,bestModel,bestVL):
+def uncoll(pred,sample):
+    
+    pred = torch.argmax(pred, dim=1)
+    ref_asps=[]
+    hyp_asps=[]
+    for id_seq, seq in enumerate(pred):
+        
+        #Get the lenght of the asps w cls pad
+        length = sample['asp_len'].tolist()[id_seq]                
+        #remove the batch padding
+        predasp = seq[:length]
+        #remove the cls padding
+        predasp = predasp[1:-1]
+        #turn into list
+        predasp = predasp.tolist()
+        goalasp = sample['y_lbl'][id_seq].tolist()[:length][1:-1]
+        
+        ref_asps.append(goalasp)
+        hyp_asps.append(predasp)
+        
+    
+    return ref_asps,hyp_asps
+    
+def evalLoop(model,valid_ds,valid_dl,device,critAsp,bestModel,bestVL):
     """
     Validation loop for the model.
 
@@ -205,7 +82,6 @@ def evalLoop(model,valid_ds,valid_dl,device,critAsp,critPol,bestModel,bestVL):
         valid_dl (DataLoader): Validation data loader.
         device: Device on which to perform evaluation.
         critAsp: Aspect loss criterion.
-        critPol: Polarity loss criterion.
         bestModel: Best model achieved so far.
         bestVL (float): Best validation loss achieved so far.
 
@@ -213,62 +89,51 @@ def evalLoop(model,valid_ds,valid_dl,device,critAsp,critPol,bestModel,bestVL):
         tuple: Tuple containing the best validation loss and the best model.
     """
     lossA = 0
-    lossP = 0
     tloss = 0
-    predP=[]
     predA=[]
-    targP=[]
     targA=[]
     model.eval()
     with torch.no_grad():
         for _,data in tqdm(enumerate(valid_dl), total=int(len(valid_ds)/valid_dl.batch_size)):
-            lbl = data['pol'].to(device)
-            lblA = data['asp'].to(device)#['asp_enc'].to(device)#.to(torch.float32)
-            text = data['text_input_ids'].to(device)
+            lbl = data['y_lbl'].to(device)
+            text = data['utterances'].to(device)
             att = data['text_attention_mask'].to(device)
     
-            asp,pol = model(text,att)
+            asp = model(text,att)
             
-            loss1 = critAsp(asp,lblA)
+            loss1 = critAsp(asp,lbl)
             lossA += loss1.item()
-            
-            loss2 = critPol(pol,lbl)
-            lossP += loss2.item()
-            
-            loss= loss1+loss2
+    
+            loss= loss1
             
             tloss +=loss.item()
             
-            #asp,pol = torch.argmax(asp,dim=1),torch.argmax(pol,dim=1)
-            predA.append(asp)
-            predP.append(pol)
-            targA.append(lblA)
-            targP.append(lbl)
+            lbl,asp = uncoll(asp, data)
             
+            predA.append(asp)
 
-        predA,predP,targA,targP=torch.cat(predA,dim=0).cpu(),torch.cat(predP,dim=0).cpu(),torch.cat(targA,dim=0).cpu(),torch.cat(targP,dim=0).cpu() 
+            targA.append(lbl)
+
+        vl = tloss/len(valid_ds)      
 
         print('Valid',
-              'L',round(tloss/len(valid_ds),6),
-              'Asp-L',round(lossA/len(valid_ds),6),
-              'Pol-L',round(lossP/len(valid_ds),6),
-              #'Asp-F1',round(f1_score(targA,predA,average='macro'),6),
-              #'Pol-F1',round(f1_score(targP,predP,average='macro'),6)
+              'L',round(vl,6),
               )
-        _ = metrics(predA, predP, targA, targP)
+        _,_,joint = metrics(predA, targA)
         
+        vl = vl/joint['F1-score'] #make the patience work with f1 in mind too
         
-        if tloss/len(valid_ds) < bestVL:
-            bestVL = tloss/len(valid_ds)
+        if vl < bestVL:
+            bestVL = copy.deepcopy(vl)
             bestModel = copy.deepcopy(model).cpu()
-        print('BestL:',bestVL)
+        print('Best score:',bestVL)
         
         print('------------------------------------------------------')
         
-    return bestVL,bestModel
+    return bestVL,vl,bestModel
 
 
-def testLoop(bestModel,test_ds,test_dl,device,critAsp,critPol,tokenizer,idx2pol,bestTL,finalModel):
+def testLoop(bestModel,test_ds,test_dl,device,critAsp,tokenizer,idx2pol,bestTL,finalModel):
     """
     Testing loop for the model.
 
@@ -278,7 +143,6 @@ def testLoop(bestModel,test_ds,test_dl,device,critAsp,critPol,tokenizer,idx2pol,
         test_dl (DataLoader): Test data loader.
         device: Device on which to perform testing.
         critAsp: Aspect loss criterion.
-        critPol: Polarity loss criterion.
         tokenizer: Tokenizer used for encoding aspects.
         idx2pol (dict): Dictionary mapping polarity indices to strings.
         bestTL (float): Best test loss achieved so far.
@@ -288,61 +152,44 @@ def testLoop(bestModel,test_ds,test_dl,device,critAsp,critPol,tokenizer,idx2pol,
         tuple: Tuple containing predictions, aspect metrics, polarity metrics, and the final model.
     """
     lossA = 0
-    lossP = 0
     tloss = 0
-    predP=[]
     predA=[]
-    targP=[]
     targA=[]
     model = bestModel
     model.to(device)
     model.eval()
     with torch.no_grad():
         for _,data in tqdm(enumerate(test_dl), total=int(len(test_ds)/test_dl.batch_size)):
-            lbl = data['pol'].to(device)
-            lblA = data['asp'].to(device)#['asp_enc'].to(device)#.to(torch.float32)
-            text = data['text_input_ids'].to(device)
+            lbl = data['y_lbl'].to(device)
+            text = data['utterances'].to(device)
             att = data['text_attention_mask'].to(device)
     
-            asp,pol = model(text,att)
+            asp = model(text,att)
             
-            loss1 = critAsp(asp,lblA)
+            loss1 = critAsp(asp,lbl)
             lossA += loss1.item()
-            
-            loss2 = critPol(pol,lbl)
-            lossP += loss2.item()
-            
-            loss= loss1+loss2
+    
+            loss= loss1
             
             tloss +=loss.item()
             
-            #asp,pol = torch.argmax(asp,dim=1),torch.argmax(pol,dim=1)
+            lbl,asp = uncoll(asp, data)
+            
             predA.append(asp)
-            predP.append(pol)
-            targA.append(lblA)
-            targP.append(lbl)
-    
-    predA,predP,targA,targP=torch.cat(predA,dim=0).cpu(),torch.cat(predP,dim=0).cpu(),torch.cat(targA,dim=0).cpu(),torch.cat(targP,dim=0).cpu() 
-    
-    predictions = extractAspPol(test_ds, predA, predP, idx2pol, tokenizer)
+            targA.append(lbl)
     
     print('\nTest',
           'L',round(tloss/len(test_ds),6),
-          'Asp-L',round(lossA/len(test_ds),6),
-          'Pol-L',round(lossP/len(test_ds),6),
-          #'Asp-F1',round(f1_score(targA,predA,average='macro'),6),
-          #'Pol-F1',round(f1_score(targP,predP,average='macro'),6)
           )
-    print('\nIndividual Metrics: ')
-    aspm,polm = metrics(predA, predP, targA, targP)
+    aspm,polm,allm = metrics(predA,targA)
     
     if tloss/len(test_ds) < bestTL:
         bestTL = tloss/len(test_ds)
         finalModel = copy.deepcopy(model).cpu()
     
-    return predictions, aspm,polm,finalModel
+    return aspm,polm,allm,finalModel
 
-def metrics(predA, predP, targA, targP):
+def metrics(predA, targA):
     """
     Calculate precision, recall, and F1-score for aspect and polarity predictions.
 
@@ -357,8 +204,22 @@ def metrics(predA, predP, targA, targP):
     """
     
     #Flatten and round outputs
-    predA, predP, targA, targP = predA.flatten(), predP.flatten(), targA.flatten(), targP.flatten()
-    predA, predP = torch.round(predA).to(torch.int), torch.round(predP).to(torch.int)
+    pred = list(chain.from_iterable(chain.from_iterable(predA)))
+    targ = list(chain.from_iterable(chain.from_iterable(targA)))
+    
+    #Make aspect predition binary ie only the position of the aspects as 1s
+    predA = [0 if x == 1 else 1 for x in pred]
+    targA = [0 if x == 1 else 1 for x in targ]
+    #For polarity only evaluate the predicted polarity of the aspects, ie remove all predictions of non aspects
+    predP = []
+    targP = []
+    for i in range(len(targ)):
+        #find the aspect positions and get their pred pol
+        if targ[i] != 1:
+            predP.append(pred[i])
+            targP.append(targ[i])
+    
+    #Joint simpy use the direct outputs of the model
 
     aspect_metrics = {
         'Precision': round(precision_score(targA, predA, average='macro',zero_division=0), 6),
@@ -370,6 +231,12 @@ def metrics(predA, predP, targA, targP):
         'Precision': round(precision_score(targP, predP, average='macro',zero_division=0), 6),
         'Recall': round(recall_score(targP, predP, average='macro',zero_division=0), 6),
         'F1-score': round(f1_score(targP, predP, average='macro',zero_division=0), 6),
+    }
+    
+    joint_metrics = {
+        'Precision': round(precision_score(targ, pred, average='macro',zero_division=0), 6),
+        'Recall': round(recall_score(targ, pred, average='macro',zero_division=0), 6),
+        'F1-score': round(f1_score(targ, pred, average='macro',zero_division=0), 6),
     }
 
     print('Aspects:',
@@ -383,47 +250,23 @@ def metrics(predA, predP, targA, targP):
           'Recall:', polarity_metrics['Recall'],
           'F1-score:', polarity_metrics['F1-score']
           )
+    
+    print('Joint:',
+          'Precision:', joint_metrics['Precision'],
+          'Recall:', joint_metrics['Recall'],
+          'F1-score:', joint_metrics['F1-score']
+          )
 
-    return aspect_metrics, polarity_metrics
+    return aspect_metrics, polarity_metrics, joint_metrics
     
 
-def finalEval(joint,asp,pol):
-    """
-    Evaluate and print average and standard deviation of precision, recall, and F1-score.
+def finalEval(metrics_list,name):
+    metrics_array = np.array([[d['Precision'], d['Recall'], d['F1-score']] for d in metrics_list])
 
-    Args:
-        joint (list): List of dictionaries containing metrics for the first set of results.
-        asp (list): List of dictionaries containing metrics for the second set of results.
-        pol (list): List of dictionaries containing metrics for the third set of results.
+    average_metrics = np.mean(metrics_array, axis=0)
+    std_metrics = np.std(metrics_array, axis=0)
 
-    Returns:
-        None
-    """
-    
-    # Extract precision, recall, and F1 scores from the lists of dictionaries
-    metrics_lists = {'Precision': [], 'Recall': [], 'F1-score': []}
-
-    for results_list in [joint, asp, pol]:
-        for metric in metrics_lists.keys():
-            metrics_lists[metric].append([item[metric] for item in results_list])
-
-    # Calculate average and standard deviation for each metric
-    metrics_avg_std = {}
-
-    for metric, values_list in metrics_lists.items():
-        avg_values = np.mean(values_list, axis=0)
-        std_values = np.std(values_list, axis=0)
-
-        metrics_avg_std[metric] = {
-            'average': avg_values,
-            'std_dev': std_values
-        }
-
-    # Print the results
-    print('\nMetric\t\tJoint\t\tAspects\t\tPolarity')
-    print('-' * 40)
-
-    for metric, values in metrics_avg_std.items():
-        print(f'{metric.capitalize()}:\t{values["average"][0]:.6f} +- {values["std_dev"][0]:.6f}\t'
-              f'{values["average"][1]:.6f} +- {values["std_dev"][1]:.6f}\t'
-              f'{values["average"][2]:.6f} +- {values["std_dev"][2]:.6f}')
+    print(f"\n{name} Metrics:")
+    print(f"Precision: {average_metrics[0]:.4f} +- {std_metrics[0]:.4f}")
+    print(f"Recall: {average_metrics[1]:.4f} +- {std_metrics[1]:.4f}")
+    print(f"F1-score: {average_metrics[2]:.4f} +- {std_metrics[2]:.4f}")

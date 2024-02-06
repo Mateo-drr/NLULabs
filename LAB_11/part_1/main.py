@@ -17,7 +17,7 @@ if __name__ == "__main__":
     
     #CONFIG VARIABLES
     numsp = 10
-    device='cuda'
+    device="cuda" if torch.cuda.is_available() else "cpu"
     res = []
     names = ['BERT', 'SVM', 'SVM+BERT']
     batch_size=90

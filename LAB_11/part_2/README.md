@@ -497,3 +497,32 @@ Metric		Joint		Aspects		Polarity
 Precision:	0.165550 +- 0.121862	0.158788 +- 0.146407	0.175466 +- 0.154877
 Recall:	0.205892 +- 0.179403	0.195872 +- 0.188033	0.200202 +- 0.191395
 F1-score:	0.167491 +- 0.133474	0.167171 +- 0.157767	0.174985 +- 0.164038
+
+
+
+
+
+Best score: 0.0008916971458472708
+------------------------------------------------------
+Patience reached!
+2it [00:02,  1.07s/it]                       
+
+Test L 0.000659
+Aspects: Precision: 0.936808 Recall: 0.864098 F1-score: 0.89637
+Polarity: Precision: 0.508612 Recall: 0.36663 F1-score: 0.403952
+Joint: Precision: 0.709936 Recall: 0.614608 F1-score: 0.631235
+
+Aspects Metrics:
+Precision: 0.9427 +- 0.0054
+Recall: 0.8779 +- 0.0096
+F1-score: 0.9071 +- 0.0065
+
+Polarity Metrics:
+Precision: 0.5030 +- 0.0154
+Recall: 0.3775 +- 0.0143
+F1-score: 0.4163 +- 0.0247
+
+Joint Metrics:
+Precision: 0.7074 +- 0.0141
+Recall: 0.6256 +- 0.0144
+F1-score: 0.6453 +- 0.0248

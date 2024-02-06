@@ -5,35 +5,34 @@
 #from functions import *
 from torch.utils.data import DataLoader
 import torch
-#from transformers import BertTokenizer, BertModel
-from transformers import RobertaTokenizer, RobertaModel
+from transformers import BertTokenizer, BertModel
+#from transformers import RobertaTokenizer, RobertaModel
 from torch import nn
 import torch.optim as optim
-from utils import loadData, CustomDataset, idx2pol, preproc
-from model import Bert2d
+from utils import *
+from model import BertCstm
 from functions import *
 import gc
+#from gensim.models import KeyedVectors
 
 if __name__ == "__main__":
     
     #PARAMS
-    runs = 3
-    device='cuda'
+    runs = 5
+    device="cuda" if torch.cuda.is_available() else "cpu"
     res = []
-    names = ['BERT', 'SVM', 'SVM+BERT']
     batch_size=64
     lr = 1e-4
-    num_epochs=75
-    hsize=128
+    num_epochs=100
+    hsize=256
     outPol=10
     outAsp=10
-    dout=0.4
-    clip=1
+    dout=0.5
+    clip=5
+    patience=10
+    pOG=copy.deepcopy(patience)
     
-    # critAsp = nn.CrossEntropyLoss(ignore_index=0)
-    # critPol = nn.CrossEntropyLoss(ignore_index=0, weight=torch.tensor([1,0.1,1,1,1]).to(device))
-    critAsp = nn.MSELoss()
-    critPol = nn.CrossEntropyLoss()
+    critAsp = nn.CrossEntropyLoss(ignore_index=PAD_TOKEN)
     torch.backends.cudnn.benchmark = True 
     #torch.set_num_threads(8)
     #torch.set_num_interop_threads(8)
@@ -49,22 +48,22 @@ if __name__ == "__main__":
     #get all the aspects and clean training data
     tsents,aspects = preproc(temp,classes)
 
-    #LOAD ROBERTA
-    # tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')#("bert-base-uncased")
-    # bert = BertModel.from_pretrained('bert-base-uncased').to(device)    
-    tokenizer = RobertaTokenizer.from_pretrained('roberta-base')#("bert-base-uncased")
-    bert = RobertaModel.from_pretrained('roberta-base').to(device)    
-    #tokenizer = RobertaTokenizer.from_pretrained('roberta-large')#("bert-base-uncased")
-    #bert = RobertaModel.from_pretrained('roberta-large').to(device)   
+    #LOAD bert
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')#("bert-base-uncased")
+    bert = BertModel.from_pretrained('bert-base-uncased').to(device)       
+    
+    #W2V for augmentation
+    #model_path = "D:/Universidades/Trento/2S/NLU/LAB_11/part_2/GoogleNews-vectors-negative300.bin.gz"
+    #w2v = KeyedVectors.load_word2vec_format(model_path, binary=True)
     
     #DS and DL
-    # using 128 size since biggest tokenized sentence in training data is 85 tokens
-    train_ds = CustomDataset(tsents, tokenizer, 128, aspects)
-    valid_ds = CustomDataset(vsents, tokenizer, 128, aspects)
-    test_ds = CustomDataset(test_sents, tokenizer, 128, aspects)
-    train_dl = DataLoader(train_ds,batch_size=batch_size,shuffle=True)
-    valid_dl = DataLoader(valid_ds,batch_size=512,shuffle=False)
-    test_dl = DataLoader(test_ds,batch_size=512,shuffle=False)
+    train_ds = CustomDataset(tsents, tokenizer,train=True)#,w2v=w2v,train=True)
+    
+    valid_ds = CustomDataset(vsents, tokenizer)
+    test_ds = CustomDataset(test_sents, tokenizer)
+    train_dl = DataLoader(train_ds,batch_size=batch_size,collate_fn=collate_fn,shuffle=True)
+    valid_dl = DataLoader(valid_ds,batch_size=512,collate_fn=collate_fn,shuffle=False)
+    test_dl = DataLoader(test_ds,batch_size=512,collate_fn=collate_fn,shuffle=False)
     
     #Store results
     finalModel=None
@@ -78,16 +77,12 @@ if __name__ == "__main__":
         #BEST RESULTS IN EACH RUN
         bestVL=1e6
         bestModel = None
+        patience=copy.deepcopy(pOG)
         
         print('\nRun', r + 1)
         
         #MODEL
-        #model = aspExt(bert,hsize, outsize,dout=dout)
-        #model = LstmMod(hsize, outsize, outsize, 128, n_layer=layers)
-        #model = modCSTM(hsize, outsize, bert)
-        #model = BertCstm(bert, hsize, len(aspects)+1, 5,dout=dout)
-        #model = Bert10(bert, hsize, 10, 10,dout=dout)
-        model = Bert2d(bert, hsize, outPol, outAsp,dout=dout)
+        model = BertCstm(bert, hsize, len(redux)+1,dout=dout)
         model.to(device)
         
         #OPTIM
@@ -97,23 +92,35 @@ if __name__ == "__main__":
         for epoch in range(0,num_epochs):
             print('E:',epoch+1)
             
-            trainLoop(model,train_ds,train_dl,device,optimizer,critAsp,critPol,clip)
+            trainLoop(model,train_ds,train_dl,device,optimizer,critAsp,clip)
 
-            bestVL,bestModel = evalLoop(model,valid_ds,valid_dl,device,critAsp,critPol,bestModel,bestVL)
+            bestVL,vl,bestModel = evalLoop(model,valid_ds,valid_dl,device,critAsp,bestModel,bestVL)
+            
+            if vl > bestVL:
+                patience-=1
+            else:
+                patience=copy.deepcopy(pOG)
+                
+            if patience<=0:
+                print('Patience reached!')
+                break
             
             gc.collect()
             torch.cuda.empty_cache()
             
         #TESTING
-        predictions,aspm,polm,finalModel = testLoop(bestModel,test_ds,test_dl,device,critAsp,critPol,tokenizer,idx2pol,bestTL,finalModel)
+        aspm,polm,allm,finalModel = testLoop(bestModel,test_ds,test_dl,device,critAsp,tokenizer,idx2pol,bestTL,finalModel)
         
-        allm = metricsAll(predictions['allP'],predictions['allT'])
+        #allm = metricsAll(predictions['allP'],predictions['allT'])
         met.append(allm)
         amet.append(aspm)
         pmet.append(polm)
         
     #Metrics of all runs
-    finalEval(met,amet,pmet)    
+    #finalEval(met,amet,pmet)    
+    finalEval(amet,'Aspects')
+    finalEval(pmet,'Polarity')
+    finalEval(met,'Joint')
         
     #save best model of all runs
     torch.save(finalModel.state_dict(),'best.pth')

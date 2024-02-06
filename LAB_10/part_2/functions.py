@@ -6,10 +6,11 @@ from conllm import evaluate
 from sklearn.metrics import classification_report
 import numpy as np
 from tqdm import tqdm
+import copy
                     
 def train_loop(train_dl,train_ds,device,optimizer,model,criterion_intents,
                criterion_slots,epoch,n_epochs,lang,tokenizer,dev_dl,patience,
-               best_f1):
+               best_f1,ogP):
     """
     Training loop for the model.
 
@@ -64,8 +65,9 @@ def train_loop(train_dl,train_ds,device,optimizer,model,criterion_intents,
         
         if f1/total_loss > best_f1 and f1 > 0.90: #just to avoid entering here in the first epochs
             best_f1 = f1/total_loss
-            torch.save(model.state_dict(), f'best.pth')
-            print('Best E',epoch)
+            torch.save(model.state_dict(), 'best.pth')
+            patience=copy.deepcopy(ogP)
+            print('Best E',epoch,patience)
         else:
             patience-=1
             
@@ -116,24 +118,46 @@ def eval_loop(data, criterion_slots, criterion_intents, model, lang, tokenizer):
             # Slot inference 
             output_slots = torch.argmax(slots, dim=1)
             for id_seq, seq in enumerate(output_slots):
-                length = len(sample['utt'][id_seq].split())#sample['slots_len'].tolist()[id_seq]
-                #utt_ids = sample['utterance'][id_seq][:length].tolist()
-                gt_ids = sample['y_slots'][id_seq].tolist()
-                if sample['pad'][id_seq] != 0: #handle padding
-                    gt_ids = gt_ids[:-sample['pad'][id_seq]]
-                    seq = seq[:len(gt_ids)]
-                gt_slots = [lang.id2slot[elem] for elem in gt_ids[:length]]
-                utterance = sample['utt'][id_seq].split() #[tokenizer.decode(elem) for elem in utt_ids][1:-1] #remove cls and sep #[lang.id2word[elem] for elem in utt_ids]
-                to_decode = seq[:length].tolist()
-                ref_slots.append([(utterance[id_el], elem) for id_el, elem in enumerate(gt_slots)])
-                tmp_seq = []
-                for id_el, elem in enumerate(to_decode):
-                    if lang.id2slot[elem] == 'O':
-                        sl = 'O-O'
-                    else:
-                        sl = lang.id2slot[elem]
-                    tmp_seq.append((utterance[id_el], sl))
-                hyp_slots.append(tmp_seq)
+                
+                #Get the lenght of the slots w cls pad
+                length = sample['slots_len'].tolist()[id_seq]                
+                #remove the batch padding
+                predSlot = seq[:length]
+                #remove the cls padding
+                predSlot = predSlot[1:-1]
+                #turn into list
+                predSlot = predSlot.tolist()
+                goalSlot = sample['slots'][id_seq].tolist()[1:-1]
+                
+                #Get the slots in text
+                txtpredSlot = [lang.id2slot[elem] for elem in predSlot]
+                txtgoalSlot = [lang.id2slot[elem] for elem in goalSlot]
+                #Get the utter in text
+                txtutter = tokenizer.decode(sample['utterance'][id_seq][1:-1]).split(" ")
+                #txtgoalUtter = sample['utt'][id_seq].split(" ")
+                
+                #Format targets as a list of tupples
+                ref_slots.append([(txtutter[id_el], elem) for id_el, elem in enumerate(txtgoalSlot)])
+                #Format predic as a list of tupples
+                hyp_slots.append([(txtutter[id_el], elem) for id_el, elem in enumerate(txtpredSlot)])
+                
+                # #utt_ids = sample['utterance'][id_seq][:length].tolist()
+                # gt_ids = sample['y_slots'][id_seq].tolist()
+                # if sample['pad'][id_seq] != 0: #handle padding
+                #     gt_ids = gt_ids[:-sample['pad'][id_seq]]
+                #     seq = seq[:len(gt_ids)]
+                # gt_slots = [lang.id2slot[elem] for elem in gt_ids[:length]]
+                # utterance = sample['utt'][id_seq].split() #[tokenizer.decode(elem) for elem in utt_ids][1:-1] #remove cls and sep #[lang.id2word[elem] for elem in utt_ids]
+                # to_decode = seq[:length].tolist()
+                # ref_slots.append([(utterance[id_el], elem) for id_el, elem in enumerate(gt_slots)])
+                # tmp_seq = []
+                # for id_el, elem in enumerate(to_decode):
+                #     if lang.id2slot[elem] == 'O':
+                #         sl = 'O-O'
+                #     else:
+                #         sl = lang.id2slot[elem]
+                #     tmp_seq.append((utterance[id_el], sl))
+                # hyp_slots.append(tmp_seq)
     try:            
         results = evaluate(ref_slots, hyp_slots)
     except Exception as ex:

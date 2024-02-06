@@ -6,6 +6,7 @@ from conllm import evaluate
 from sklearn.metrics import classification_report
 import numpy as np
 import torch.optim as optim
+import copy
 
 PAD_TOKEN = 0
 
@@ -187,6 +188,7 @@ def trainModel(model,n_epochs,train_loader,optimizer,criterion_slots,criterion_i
     Returns:
     - Trained model.
     """
+    pOG=copy.deepcopy(patience)
     for x in range(1,n_epochs):
         loss = train_loop(train_loader, optimizer, criterion_slots, 
                           criterion_intents, model)
@@ -200,9 +202,11 @@ def trainModel(model,n_epochs,train_loader,optimizer,criterion_slots,criterion_i
 
             if f1 > best_f1:
                 best_f1 = f1
+                patience=copy.deepcopy(pOG)
             else:
                 patience -= 1
             if patience <= 0: # Early stoping with patient
+                print('Patience reached E:', x)
                 break # Not nice but it keeps the code clean
                 
     return model

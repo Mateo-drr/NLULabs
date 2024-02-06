@@ -62,7 +62,6 @@ def train_loopNT(data, optimizer, criterion, model, config, dev_loader, eval_cri
     model.train()
     loss_array = []
     number_of_tokens = []
-    
     for sample in data:
         optimizer.zero_grad() # Zeroing the gradient
         output = model(sample['source'])
@@ -74,48 +73,16 @@ def train_loopNT(data, optimizer, criterion, model, config, dev_loader, eval_cri
         torch.nn.utils.clip_grad_norm_(model.parameters(), clip)  
         optimizer.step() # Update the weights
         
-        if config['k'] % config['L'] == 0: #and config['T'] == 0: #and config['k'] != 0:
-            valid_perp,_ = eval_loop(dev_loader, eval_criterion, model)
-            model.train()
-            
-            if len(config['logs']) != 0 :
-                if config['t'] > config['n'] and valid_perp > min(config['logs'][:config['t'] - config['n']]):
-                    print(config)
-                    update_optimizer_parameters(model, optimizer, config['T'], config['k'])
-                    # optimizer = update_optimizer_parameters(model, optimizer,config)
-                    config['T'] = config['k']
-            config['logs'].append(valid_perp)
-            config['t'] += 1
-    
-        config['k'] += 1
+    #NT-ASGD
+    #Simply change to ASGD when the NT condition is met
+    _,val_loss = eval_loop(dev_loader, eval_criterion, model)
+    if 't0' not in optimizer.param_groups[0] and (len(config['logs'])>config['n'] and val_loss > min(config['logs'][:-config['n']])):
+            print('\nNT condition met, switching to ASGD', optimizer)
+            optimizer = torch.optim.ASGD(model.parameters(), lr=config['lr'], t0=0, lambd=0., weight_decay=1.2e-6)
+            print(optimizer)
+    config['logs'].append(val_loss)
         
-    return sum(loss_array)/sum(number_of_tokens)
-
-def update_optimizer_parameters(model, optimizer, start_iter, end_iter):
-    """
-    Updates the optimizer's parameters during NT-ASGD optimization.
-
-    Parameters:
-    - model (nn.Module): The PyTorch model.
-    - optimizer (torch.optim.Optimizer): The optimizer.
-    - start_iter (int): Start iteration index. T 
-    - end_iter (int): End iteration index. k
-    """
-    # optimizer.param_groups[0]['t0'] = config['T']
-    # for g in optimizer.param_groups:
-    #     g['lr'] = config['lr']
-    # return optimizer
-    # Iterate over parameter groups in the optimizer
-    for param_group in optimizer.param_groups:
-        # Iterate over parameters within the current parameter group
-        for param in param_group['params']:
-            # param.data: Current parameter's data: weights or biases
-            # param.grad.data: Gradient of the loss with respect to the parameter
-            # .add_(): In-place operation that updates the parameter data
-            # It adds the product of the lr and the gradient to the parameter
-            # alpha=(param_group['lr'] / (end_iter + 1 - start_iter + 1)): Scale factor for the addition
-            param.data.add_(param.grad.data, alpha=(param_group['lr'] / (end_iter + 1 - start_iter + 1)))
-
+    return sum(loss_array)/sum(number_of_tokens),optimizer
 
 
 def eval_loop(data, eval_criterion, model):
@@ -249,7 +216,7 @@ def runModel(n_epochs, optimizer, criterion_train, criterion_eval, model, clip,
     Returns:
     - nn.Module: The best model based on the evaluation results.
     """
-    pOg= patience
+    pOg= copy.deepcopy(patience)
     losses_train = []
     losses_dev = []
     sampled_epochs = []
@@ -260,7 +227,7 @@ def runModel(n_epochs, optimizer, criterion_train, criterion_eval, model, clip,
         if not ntasgd:
             loss = train_loop(train_loader, optimizer, criterion_train, model, clip)    
         else:
-            loss = train_loopNT(train_loader, optimizer, criterion_train, model, config, dev_loader, criterion_eval)
+            loss,optimizer = train_loopNT(train_loader, optimizer, criterion_train, model, config, dev_loader, criterion_eval)
             
         if epoch % 1 == 0:
             sampled_epochs.append(epoch)
@@ -312,7 +279,7 @@ def printRes(pptot):
     Parameters:
     - pptot (list): List of perplexities for different models and configurations.
     """
-    lbl=['WT+DO+AdW', 'WT+VDO+Adw', 'WT+VDO+SGD', 'WT+VDO+NTASGD (init ASGD)', 'WT+VDO+NTASGD (init SGD)']
+    lbl=['WT+DO+AdW', 'WT+VDO+Adw', 'WT+VDO+SGD', 'WT+VDO+NTASGD']
     print('\n')
     for i,name in enumerate(lbl):
         print(name, np.array(pptot[i]).mean(), '+-', np.array(pptot[i]).std())

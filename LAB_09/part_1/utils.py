@@ -1,7 +1,7 @@
 # Add functions or classes used for data loading and preprocessing
 import torch.utils.data as data
 import torch
-device='cuda'
+device="cuda" if torch.cuda.is_available() else "cpu"
 
 #CUSTOM DATASET
 ###########################################################################

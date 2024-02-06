@@ -39,7 +39,8 @@ class LM_LSTM(nn.Module):
                  emb_dropout=0.1, n_layers=1, vardrop=False,dropprob=0):
         super(LM_LSTM, self).__init__()
         # Token ids to vectors
-        self.embedding = nn.Embedding(output_size, emb_size, padding_idx=pad_index)
+        self.embedding = nn.Embedding(output_size, hidden_size, padding_idx=pad_index) 
+        self.emblin = nn.Linear(hidden_size, emb_size) #used to allow weight tying with hidden_size != emb_size
         # Pytorch's LSTM layer
         self.lstm = nn.LSTM(emb_size, hidden_size, n_layers, bidirectional=False)
         
@@ -69,10 +70,12 @@ class LM_LSTM(nn.Module):
         return x,max_batch_size
         
     def forward(self, input_sequence):
+        
         emb = self.embedding(input_sequence)
         
-        if self.vardrop and self.training:    #dont apply dropout during training
+        if self.vardrop and self.training:    #dont apply dropout during testing
             x=emb
+            emb = self.emblin(emb)
             #sample a dropout mask
             dropout_mask = x.new_empty(x.shape[0], 1, x.size(2), requires_grad=False).bernoulli_(1 - self.dropprob)
             #since the expected input was x (without dropout) now we need to scale it
@@ -83,12 +86,13 @@ class LM_LSTM(nn.Module):
             #apply same dropout after
             lstm_out = lstm_out* dropout_mask / (1 - self.dropprob)
         else:
+            emb = self.emblin(emb)
             emb = self.drop1(emb)
             lstm_out,_=self.lstm(emb)  
             lstm_out = self.drop2(lstm_out)
         
-        output = self.output(lstm_out).permute(0, 2, 1)
-        return output
+        x = self.output(lstm_out).permute(0, 2, 1)
+        return x
 
     def get_word_embedding(self, token):
         return self.embedding(token).squeeze(0).detach().cpu().numpy()
